@@ -77,6 +77,7 @@
   .bar-rect { fill: var(--bar); transition: width .45s ease, x .45s ease; }
   .bar-cn .bar-rect, .bar-cn .seg-rect { fill: var(--bar-cn); }
   .violin { fill: var(--bar); fill-opacity: .42; stroke: var(--bar); stroke-width: 1.3; }
+  .axis-unit { font-weight: 700; font-size: 11.5px; fill: var(--text-2); }
   .median-line { stroke: var(--text); stroke-width: 1.6; }
   .pct-tick { stroke: var(--text-2); stroke-width: 1; }
   #cn-legend { display: none; }
@@ -144,7 +145,7 @@
     <header>
       <div>
         <h2>AI chip production, US vs China</h2>
-        <p class="subtitle">Annual shipments in GB300-equivalents, US total vs China total; 2025–27 are TrendForce forecasts</p>
+        <p class="subtitle">Annual shipments in <strong>GB300-equivalents (GB300e)</strong>, US total vs China total; 2025–27 are TrendForce forecasts</p>
       </div>
       <select id="tf-mode-select" aria-label="Conversion mode">
         <option value="train_fp8" selected>FP8 FLOP/s</option>
@@ -161,7 +162,7 @@
   <header>
     <div>
       <h1>US AI chip owners, end of 2025</h1>
-      <p class="subtitle">Cumulative AI-chip installed base in GB300-equivalents — color intensity shows the probability distribution; the number marks the median</p>
+      <p class="subtitle">Cumulative AI-chip installed base in <strong>GB300-equivalents (GB300e)</strong> — color intensity shows the probability distribution; the number marks the median</p>
     </div>
     <select id="mode-select" aria-label="Conversion mode">
       <option value="train_fp8" selected>FP8 FLOP/s</option>
@@ -191,7 +192,7 @@
     <header>
       <div>
         <h2>Chinese AI developers, end of 2025</h2>
-        <p class="subtitle">Estimated accessible compute in GB300-equivalents — color intensity shows the probability distribution</p>
+        <p class="subtitle">Estimated accessible compute in <strong>GB300-equivalents (GB300e)</strong> — color intensity shows the probability distribution</p>
       </div>
       <select id="labs-mode-select" style="display:none" aria-label="Conversion mode">
         <option value="fp8" selected>FP8 FLOP/s</option>
@@ -276,13 +277,14 @@ function render() {
   const owners = [...DATA.owners, ...extraOwners]
     .sort((a, b) => b.modes[mode].median - a.modes[mode].median);
   const W = Math.min(el.clientWidth || 628, 660);
-  const H = 380, TOPV = 24, BOT = 50, LEFTV = 52, RIGHTV = 8;
-  const plotW = W - LEFTV - RIGHTV, plotH = H - TOPV - BOT;
-  const maxY = Math.max(...owners.map(o => {
+  const ROWH = 32, BARH = 18, LEFT2 = 156, RIGHT2 = 12, TOP2 = 24, BOT2 = 6;
+  const H = TOP2 + owners.length * ROWH + BOT2;
+  const plotW = W - LEFT2 - RIGHT2;
+  const maxX = Math.max(...owners.map(o => {
     const d = ownerDist(o, mode);
     return d ? d.x1 : (o.has_ci ? o.modes[mode].hi : o.modes[mode].median) * 1.1;
-  })) * 1.03;
-  const y = v => TOPV + plotH - (v / maxY) * plotH;
+  })) * 1.02;
+  const x = v => LEFT2 + (v / maxX) * plotW;
   el.innerHTML = "";
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("width", "100%");
@@ -292,92 +294,86 @@ function render() {
   svg.setAttribute("role", "img");
   svg.setAttribute("aria-label", "AI chip owners in GB300 equivalents; bar intensity shows the probability distribution");
   el.appendChild(svg);
-  const step = niceStep(maxY);
-  for (let v = 0; v <= maxY; v += step) {
+  const step = niceStep(maxX);
+  for (let v = 0; v <= maxX; v += step) {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.setAttribute("class", v === 0 ? "zero-line" : "grid-line");
-    line.setAttribute("x1", LEFTV); line.setAttribute("x2", W - RIGHTV);
-    line.setAttribute("y1", y(v)); line.setAttribute("y2", y(v));
+    line.setAttribute("x1", x(v)); line.setAttribute("x2", x(v));
+    line.setAttribute("y1", TOP2 - 4); line.setAttribute("y2", H - BOT2);
     svg.appendChild(line);
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
     t.setAttribute("class", "axis-label");
-    t.setAttribute("x", LEFTV - 6); t.setAttribute("y", y(v) + 3.5);
-    t.setAttribute("text-anchor", "end");
+    t.setAttribute("x", x(v)); t.setAttribute("y", TOP2 - 9);
+    t.setAttribute("text-anchor", v === 0 ? "start" : "middle");
     t.textContent = v === 0 ? "0" : fmtTick(v);
     svg.appendChild(t);
   }
   const unit = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  unit.setAttribute("class", "axis-label");
-  unit.setAttribute("x", W - RIGHTV); unit.setAttribute("y", 12);
+  unit.setAttribute("class", "axis-unit");
+  unit.setAttribute("x", W); unit.setAttribute("y", TOP2 - 9);
   unit.setAttribute("text-anchor", "end");
   unit.textContent = "GB300e";
   svg.appendChild(unit);
-  const slotW = plotW / owners.length;
-  const barHW = Math.min(26, slotW * 0.24);
   const rootStyle = getComputedStyle(document.documentElement);
   owners.forEach((o, i) => {
-    const cx = LEFTV + i * slotW + slotW / 2;
+    const yMid = TOP2 + i * ROWH + ROWH / 2;
     const m = o.modes[mode];
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     const color = rootStyle.getPropertyValue(o.cn ? "--bar-cn" : "--bar").trim();
     const dist = ownerDist(o, mode);
     if (dist) {
-      const yTop = y(dist.x1), yBot = y(dist.x0);
+      const xL = x(dist.x0), xR = x(dist.x1);
       const gradId = `og-${o.owner.replace(/[^a-z]/gi, "")}`;
       const grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
       grad.setAttribute("id", gradId);
       grad.setAttribute("gradientUnits", "userSpaceOnUse");
-      grad.setAttribute("x1", 0); grad.setAttribute("x2", 0);
-      grad.setAttribute("y1", yTop); grad.setAttribute("y2", yBot);
-      for (let k = 80; k >= 0; k -= 2) {
+      grad.setAttribute("x1", xL); grad.setAttribute("x2", xR);
+      grad.setAttribute("y1", 0); grad.setAttribute("y2", 0);
+      for (let k = 0; k <= 80; k += 2) {
         const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-        stop.setAttribute("offset", ((80 - k) / 80).toFixed(3));
+        stop.setAttribute("offset", (k / 80).toFixed(3));
         stop.setAttribute("stop-color", color);
         stop.setAttribute("stop-opacity", Math.pow(dist.d[k], 0.6).toFixed(3));
         grad.appendChild(stop);
       }
       svg.appendChild(grad);
       const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      bar.setAttribute("x", cx - barHW); bar.setAttribute("width", barHW * 2);
-      bar.setAttribute("y", yTop); bar.setAttribute("height", Math.max(2, yBot - yTop));
+      bar.setAttribute("x", xL); bar.setAttribute("width", Math.max(2, xR - xL));
+      bar.setAttribute("y", yMid - BARH / 2); bar.setAttribute("height", BARH);
       bar.setAttribute("fill", `url(#${gradId})`);
       g.appendChild(bar);
     } else if (o.has_ci) {
-      // interval known but no density yet: uniform faded bar over the 80% interval
       const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      bar.setAttribute("x", cx - barHW); bar.setAttribute("width", barHW * 2);
-      bar.setAttribute("y", y(m.hi)); bar.setAttribute("height", Math.max(2.5, y(m.lo) - y(m.hi)));
+      bar.setAttribute("x", x(m.lo)); bar.setAttribute("width", Math.max(2.5, x(m.hi) - x(m.lo)));
+      bar.setAttribute("y", yMid - BARH / 2); bar.setAttribute("height", BARH);
       bar.setAttribute("fill", color); bar.setAttribute("fill-opacity", "0.5");
       g.appendChild(bar);
     } else {
-      // point estimate (xAI): a solid tick at the median
       const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      tick.setAttribute("x1", cx - barHW); tick.setAttribute("x2", cx + barHW);
-      tick.setAttribute("y1", y(m.median)); tick.setAttribute("y2", y(m.median));
+      tick.setAttribute("x1", x(m.median)); tick.setAttribute("x2", x(m.median));
+      tick.setAttribute("y1", yMid - BARH / 2); tick.setAttribute("y2", yMid + BARH / 2);
       tick.setAttribute("stroke", color); tick.setAttribute("stroke-width", "3");
       g.appendChild(tick);
     }
-    const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    val.setAttribute("class", "value-label");
-    val.setAttribute("x", cx);
-    val.setAttribute("y", y(m.median) + (o.has_ci ? 3.5 : -6));
-    val.setAttribute("text-anchor", "middle");
-    val.textContent = fmtM(m.median);
+    // owner name + median value together in the left gutter
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    name.setAttribute("class", "owner-label");
-    name.setAttribute("x", cx);
-    name.setAttribute("y", owners.length > 8 ? (i % 2 ? H - 8 : H - 24) : H - 8);
-    name.setAttribute("text-anchor", "middle");
-    if (owners.length > 8) name.setAttribute("font-size", "10");
-    name.textContent = o.owner;
+    name.setAttribute("x", LEFT2 - 8); name.setAttribute("y", yMid + 4);
+    name.setAttribute("text-anchor", "end");
+    const t1 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    t1.setAttribute("class", "owner-label");
+    t1.textContent = o.owner + " ";
+    const t2 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    t2.setAttribute("class", "value-label");
+    t2.textContent = fmtM(m.median) + (i === 0 ? " GB300e" : "");
+    name.append(t1, t2);
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    hit.setAttribute("x", cx - slotW / 2); hit.setAttribute("y", TOPV);
-    hit.setAttribute("width", slotW); hit.setAttribute("height", plotH);
+    hit.setAttribute("x", 0); hit.setAttribute("y", yMid - ROWH / 2);
+    hit.setAttribute("width", W); hit.setAttribute("height", ROWH);
     hit.setAttribute("fill", "transparent");
     hit.addEventListener("mousemove", ev => showTip(o, ev));
     hit.addEventListener("mouseleave", hideTip);
     hit.addEventListener("click", ev => showTip(o, ev));
-    g.append(val, name, hit);
+    g.append(name, hit);
     svg.appendChild(g);
   });
   document.getElementById("mode-note").textContent = MODES[mode].note;
@@ -538,7 +534,7 @@ function renderLabs() {
     svg.appendChild(t);
   }
   const unit = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  unit.setAttribute("class", "axis-label");
+  unit.setAttribute("class", "axis-unit");
   unit.setAttribute("x", W - RIGHTV); unit.setAttribute("y", 12);
   unit.setAttribute("text-anchor", "end");
   unit.textContent = "GB300e";
@@ -579,7 +575,7 @@ function renderLabs() {
     val.setAttribute("class", "value-label");
     val.setAttribute("x", cx); val.setAttribute("y", ym + 3.5);
     val.setAttribute("text-anchor", "middle");
-    val.textContent = labsFmt(m.median);
+    val.textContent = labsFmt(m.median) + (i === 0 ? " GB300e" : "");
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
     name.setAttribute("x", cx); name.setAttribute("y", H - 8);
@@ -697,7 +693,7 @@ function renderTF() {
     svg.appendChild(t);
   }
   const unit = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  unit.setAttribute("class", "axis-label"); unit.setAttribute("x", W - R);
+  unit.setAttribute("class", "axis-unit"); unit.setAttribute("x", W - R);
   unit.setAttribute("y", 12); unit.setAttribute("text-anchor", "end");
   unit.textContent = "GB300e";
   svg.appendChild(unit);
