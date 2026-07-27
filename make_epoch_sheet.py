@@ -15,7 +15,7 @@ EOY = "2025-12-31"
 US_OWNERS = ["Microsoft", "Google", "Meta", "Amazon", "Oracle", "CoreWeave", "xAI"]
 EPOCH_URL = "https://epoch.ai/data/ai-chip-owners"
 HWDB_URL = "https://epoch.ai/data/machine-learning-hardware"
-FIGURE_URL = "https://konstantinpilz.github.io/us-ai-compute/"
+FIGURE_URL = "https://konstantinpilz.github.io/holy-grail/"
 
 # chip -> (fp8 TFLOP/s, fp8 basis, fp4 TFLOP/s, fp4 basis, bw TB/s, bw note, source label, source url)
 SPECS = {

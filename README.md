@@ -20,7 +20,7 @@ GB300-equivalents, with 90% CIs and a three-mode toggle:
 2. **FP4 FLOP/s** — dense FP4 ÷ GB300 FP4 (15 PFLOP/s), falling back to the FP8-chain value.
 3. **Memory Bandwidth** — memory bandwidth ÷ GB300's 8 TB/s.
 
-**Live site:** https://konstantinpilz.github.io/us-ai-compute/
+**Live site:** https://konstantinpilz.github.io/holy-grail/
 
 ## Files
 
