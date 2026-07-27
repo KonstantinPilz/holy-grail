@@ -611,37 +611,42 @@ function renderLabs() {
     const cx = LEFTV + i * slotW + slotW / 2;
     const f = fac(l), m = labsVal(l);
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    const hwAt = v => {   // half-width of the violin at value v
-      if (!l.dist) return halfMax * 0.6;
-      const { x0, x1, d } = l.dist;
-      const k = (v / f - x0) / (x1 - x0) * 80;
-      if (k <= 0 || k >= 80) return 0;
-      const k0 = Math.floor(k);
-      return (d[k0] + (d[k0 + 1] - d[k0]) * (k - k0)) * halfMax;
-    };
+    const barHW = Math.min(30, slotW * 0.21);
     if (l.dist) {
       const { x0, x1, d } = l.dist;
-      const pts = d.map((dv, k) => [y((x0 + (x1 - x0) * k / 80) * f), dv * halfMax]);
-      let path = `M${(cx + pts[0][1]).toFixed(1)} ${pts[0][0].toFixed(1)}`;
-      for (const [py, hw] of pts) path += `L${(cx + hw).toFixed(1)} ${py.toFixed(1)} `;
-      for (let k = pts.length - 1; k >= 0; k--) path += `L${(cx - pts[k][1]).toFixed(1)} ${pts[k][0].toFixed(1)} `;
-      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      p.setAttribute("class", "violin");
-      p.setAttribute("d", path + "Z");
-      g.appendChild(p);
+      const yTop = y(x1 * f), yBot = y(x0 * f);
+      const gradId = `lg-${l.name.replace(/[^a-z]/gi, "")}`;
+      const grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+      grad.setAttribute("id", gradId);
+      grad.setAttribute("gradientUnits", "userSpaceOnUse");
+      grad.setAttribute("x1", 0); grad.setAttribute("x2", 0);
+      grad.setAttribute("y1", yTop); grad.setAttribute("y2", yBot);
+      const barColor = getComputedStyle(document.documentElement).getPropertyValue("--bar").trim();
+      for (let k = 80; k >= 0; k -= 2) {   // top (x1) -> bottom (x0)
+        const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+        stop.setAttribute("offset", ((80 - k) / 80).toFixed(3));
+        stop.setAttribute("stop-color", barColor);
+        stop.setAttribute("stop-opacity", Math.pow(d[k], 0.75).toFixed(3));
+        grad.appendChild(stop);
+      }
+      svg.appendChild(grad);
+      const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bar.setAttribute("x", cx - barHW); bar.setAttribute("width", barHW * 2);
+      bar.setAttribute("y", yTop); bar.setAttribute("height", Math.max(0, yBot - yTop));
+      bar.setAttribute("fill", `url(#${gradId})`);
+      g.appendChild(bar);
     }
-    for (const q of [m.p10, m.p90]) {   // 80%-interval ticks
+    for (const q of [m.p10, m.p90]) {   // 80%-interval marks
       const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
       tick.setAttribute("class", "pct-tick");
-      const hw = Math.max(hwAt(q), 4);
-      tick.setAttribute("x1", cx - hw); tick.setAttribute("x2", cx + hw);
+      tick.setAttribute("x1", cx - barHW - 5); tick.setAttribute("x2", cx + barHW + 5);
       tick.setAttribute("y1", y(q)); tick.setAttribute("y2", y(q));
       g.appendChild(tick);
     }
-    const ym = y(m.median), hwm = Math.max(hwAt(m.median), 8);
+    const ym = y(m.median);
     const med = document.createElementNS("http://www.w3.org/2000/svg", "line");
     med.setAttribute("class", "median-line");
-    med.setAttribute("x1", cx - hwm - 4); med.setAttribute("x2", cx + hwm + 4);
+    med.setAttribute("x1", cx - barHW - 8); med.setAttribute("x2", cx + barHW + 8);
     med.setAttribute("y1", ym); med.setAttribute("y2", ym);
     const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
     val.setAttribute("class", "value-label");
@@ -665,9 +670,9 @@ function renderLabs() {
   });
   document.getElementById("labs-mode-note").textContent = LABS_MODES[labsMode];
   document.getElementById("labs-fine").innerHTML =
-    `Each shape is the smoothed density of the model's own Monte Carlo draws (1,700–5,000 per developer;
-     Gaussian KDE), so it shows where the probability mass actually sits — not a fitted curve. The bold line and
-     number mark the median; thin ticks mark the 80% interval (p10–p90). Hover or tap a shape for ownership,
+    `Each bar's color intensity is the smoothed density of the model's own Monte Carlo draws (1,700–5,000 per
+     developer; Gaussian KDE) — the bar fades out where outcomes get unlikely. The bold line and
+     number mark the median; thin ticks mark the 80% interval (p10–p90). Hover or tap a bar for ownership,
      chip-class breakdown, and sources. FP4 and Memory Bandwidth modes rescale the FP8-basis draws by a fixed
      per-lab factor from the median chip mix. Spend-based capacity (MiniMax, Moonshot, Zhipu rented) is
      H800-denominated, not a physical chip census.
