@@ -191,7 +191,7 @@
     <header>
       <div>
         <h2>Chinese AI developers, end of 2025</h2>
-        <p class="subtitle">Estimated accessible compute in GB300-equivalents — medians and 80%&nbsp;confidence intervals</p>
+        <p class="subtitle">Estimated accessible compute in GB300-equivalents — color intensity shows the probability distribution</p>
       </div>
       <select id="labs-mode-select" style="display:none" aria-label="Conversion mode">
         <option value="fp8" selected>FP8 FLOP/s</option>
@@ -636,22 +636,12 @@ function renderLabs() {
       bar.setAttribute("fill", `url(#${gradId})`);
       g.appendChild(bar);
     }
-    for (const q of [m.p10, m.p90]) {   // 80%-interval marks
-      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      tick.setAttribute("class", "pct-tick");
-      tick.setAttribute("x1", cx - barHW - 5); tick.setAttribute("x2", cx + barHW + 5);
-      tick.setAttribute("y1", y(q)); tick.setAttribute("y2", y(q));
-      g.appendChild(tick);
-    }
     const ym = y(m.median);
-    const med = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    med.setAttribute("class", "median-line");
-    med.setAttribute("x1", cx - barHW - 8); med.setAttribute("x2", cx + barHW + 8);
-    med.setAttribute("y1", ym); med.setAttribute("y2", ym);
     const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
     val.setAttribute("class", "value-label");
-    val.setAttribute("x", cx); val.setAttribute("y", ym - 6);
+    val.setAttribute("x", cx); val.setAttribute("y", ym + 3.5);
     val.setAttribute("text-anchor", "middle");
+    val.setAttribute("style", "paint-order: stroke; stroke: var(--bg); stroke-width: 3px;");
     val.textContent = labsFmt(m.median);
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
@@ -665,14 +655,14 @@ function renderLabs() {
     hit.addEventListener("mousemove", ev => showLabsTip(l, ev));
     hit.addEventListener("mouseleave", hideTip);
     hit.addEventListener("click", ev => showLabsTip(l, ev));
-    g.append(med, val, name, hit);
+    g.append(val, name, hit);
     svg.appendChild(g);
   });
   document.getElementById("labs-mode-note").textContent = LABS_MODES[labsMode];
   document.getElementById("labs-fine").innerHTML =
     `Each bar's color intensity is the smoothed density of the model's own Monte Carlo draws (1,700–5,000 per
-     developer; Gaussian KDE) — the bar fades out where outcomes get unlikely. The bold line and
-     number mark the median; thin ticks mark the 80% interval (p10–p90). Hover or tap a bar for ownership,
+     developer; Gaussian KDE) — the bar fades out where outcomes get unlikely. The printed number sits at
+     the median. Hover or tap a bar for ownership,
      chip-class breakdown, and sources. FP4 and Memory Bandwidth modes rescale the FP8-basis draws by a fixed
      per-lab factor from the median chip mix. Spend-based capacity (MiniMax, Moonshot, Zhipu rented) is
      H800-denominated, not a physical chip census.
