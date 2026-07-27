@@ -161,7 +161,7 @@
   <header>
     <div>
       <h1>US AI chip owners, end of 2025</h1>
-      <p class="subtitle">Cumulative AI-chip installed base in GB300-equivalents — medians and 80%&nbsp;confidence intervals</p>
+      <p class="subtitle">Cumulative AI-chip installed base in GB300-equivalents — color intensity shows the probability distribution; the number marks the median</p>
     </div>
     <select id="mode-select" aria-label="Conversion mode">
       <option value="train_fp8" selected>FP8 FLOP/s</option>
@@ -260,189 +260,127 @@ function niceStep(max) {
   return 10 * pow;
 }
 
-let built = false, refs = {};
 let extraOwners = [];
-function render(animate) {
-  if (!built) {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "100%");
-    svg.id = "svg-main";
-    svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "Bar chart of US AI chip owners in GB300 equivalents");
-    chartEl.appendChild(svg);
-    refs.svg = svg;
-    refs.gridG = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    svg.appendChild(refs.gridG);
-    refs.rows = {};
-    for (const o of DATA.owners) makeRow(o);
-    built = true;
+function ownerDist(o, m) {
+  // Returns {x0, x1, d} in the CURRENT mode's units, or null.
+  const mm = o.modes[m];
+  if (mm.dist) return mm.dist;                      // US: per-mode density
+  if (o.cn && o.dist) {                             // CN: FP8 density x mode factor
+    const f = o.modes[m].median / o.modes.train_fp8.median;
+    return { x0: o.dist.x0 * f, x1: o.dist.x1 * f, d: o.dist.d };
   }
-  for (const o of extraOwners) if (!refs.rows[o.owner]) makeRow(o);
-  const allOwners = [...DATA.owners, ...extraOwners];
-  renderRows(allOwners, animate);
+  return null;
 }
-
-function makeRow(o) {
-      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      g.setAttribute("class", "row-g" + (o.cn ? " bar-cn" : ""));
-      const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      name.setAttribute("class", "owner-label");
-      name.setAttribute("x", LEFT - 8);
-      name.setAttribute("text-anchor", "end");
-      name.textContent = o.owner;
-      const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      bar.setAttribute("class", "bar-rect");
-      bar.setAttribute("x", LEFT);
-      bar.setAttribute("height", BAR_H);
-      const segsG = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      const wh = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      wh.setAttribute("class", "whisker");
-      const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      val.setAttribute("class", "value-label");
-      const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      hit.setAttribute("x", 0); hit.setAttribute("height", ROW_H); hit.setAttribute("y", -ROW_H / 2);
-      hit.setAttribute("fill", "transparent");
-      hit.addEventListener("mousemove", ev => { buildSegs(o); showTip(o, ev); });
-      hit.addEventListener("mouseleave", () => { clearSegs(refs.rows[o.owner]); hideTip(); });
-      hit.addEventListener("click", ev => { buildSegs(o); showTip(o, ev); });
-      g.append(name, bar, segsG, wh, val, hit);
-      refs.svg.appendChild(g);
-      refs.rows[o.owner] = { g, name, bar, segsG, wh, val, hit, segsKey: null };
-}
-
-function renderRows(owners, animate) {
-  owners.sort((a, b) => b.modes[mode].median - a.modes[mode].median);
-  const maxVal = Math.max(...owners.map(o => o.has_ci ? o.modes[mode].hi : o.modes[mode].median));
-  const W = Math.min(chartEl.clientWidth || 628, 660);
-  const RIGHT = 58;
-  const H = TOP + owners.length * ROW_H + BOTTOM;
-  const plotW = W - LEFT - RIGHT;
-  const x = v => LEFT + (v / (maxVal * 1.03)) * plotW;
-
-  refs.svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  refs.svg.setAttribute("height", H);
-  refs.x = x;
-  for (const rr of Object.values(refs.rows)) clearSegs(rr);
-
-  // gridlines with labels on top (Datawrapper style)
-  refs.gridG.innerHTML = "";
-  const step = niceStep(maxVal);
-  for (let v = 0; v <= maxVal * 1.03; v += step) {
+function render() {
+  const el = chartEl;
+  const owners = [...DATA.owners, ...extraOwners]
+    .sort((a, b) => b.modes[mode].median - a.modes[mode].median);
+  const W = Math.min(el.clientWidth || 628, 660);
+  const H = 380, TOPV = 24, BOT = 50, LEFTV = 52, RIGHTV = 8;
+  const plotW = W - LEFTV - RIGHTV, plotH = H - TOPV - BOT;
+  const maxY = Math.max(...owners.map(o => {
+    const d = ownerDist(o, mode);
+    return d ? d.x1 : (o.has_ci ? o.modes[mode].hi : o.modes[mode].median) * 1.1;
+  })) * 1.03;
+  const y = v => TOPV + plotH - (v / maxY) * plotH;
+  el.innerHTML = "";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "100%");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("height", H);
+  svg.id = "svg-main";
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "AI chip owners in GB300 equivalents; bar intensity shows the probability distribution");
+  el.appendChild(svg);
+  const step = niceStep(maxY);
+  for (let v = 0; v <= maxY; v += step) {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.setAttribute("class", v === 0 ? "zero-line" : "grid-line");
-    line.setAttribute("x1", x(v)); line.setAttribute("x2", x(v));
-    line.setAttribute("y1", TOP - 4); line.setAttribute("y2", H - BOTTOM);
-    refs.gridG.appendChild(line);
+    line.setAttribute("x1", LEFTV); line.setAttribute("x2", W - RIGHTV);
+    line.setAttribute("y1", y(v)); line.setAttribute("y2", y(v));
+    svg.appendChild(line);
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
     t.setAttribute("class", "axis-label");
-    t.setAttribute("x", x(v)); t.setAttribute("y", TOP - 9);
-    t.setAttribute("text-anchor", v === 0 ? "start" : "middle");
+    t.setAttribute("x", LEFTV - 6); t.setAttribute("y", y(v) + 3.5);
+    t.setAttribute("text-anchor", "end");
     t.textContent = v === 0 ? "0" : fmtTick(v);
-    refs.gridG.appendChild(t);
+    svg.appendChild(t);
   }
   const unit = document.createElementNS("http://www.w3.org/2000/svg", "text");
   unit.setAttribute("class", "axis-label");
-  unit.setAttribute("x", W); unit.setAttribute("y", TOP - 9);
+  unit.setAttribute("x", W - RIGHTV); unit.setAttribute("y", 12);
   unit.setAttribute("text-anchor", "end");
   unit.textContent = "GB300e";
-  refs.gridG.appendChild(unit);
-
+  svg.appendChild(unit);
+  const slotW = plotW / owners.length;
+  const barHW = Math.min(26, slotW * 0.24);
+  const rootStyle = getComputedStyle(document.documentElement);
   owners.forEach((o, i) => {
-    const r = refs.rows[o.owner];
+    const cx = LEFTV + i * slotW + slotW / 2;
     const m = o.modes[mode];
-    const yMid = TOP + i * ROW_H + ROW_H / 2;
-    if (!animate) r.g.style.transition = "none";
-    r.g.setAttribute("transform", `translate(0, ${yMid})`);
-    r.name.setAttribute("y", 4);
-    r.bar.setAttribute("y", -BAR_H / 2);
-    r.bar.setAttribute("width", Math.max(0, x(m.median) - LEFT));
-    r.hit.setAttribute("width", W);
-    if (o.has_ci) {
-      const x5 = x(m.lo), x95 = x(m.hi), cap = 3.5;
-      r.wh.setAttribute("d", `M${x5} ${-cap} V${cap} M${x5} 0 H${x95} M${x95} ${-cap} V${cap}`);
-      r.val.textContent = fmtM(m.median);
-      r.val.setAttribute("x", x95 + 7);
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const color = rootStyle.getPropertyValue(o.cn ? "--bar-cn" : "--bar").trim();
+    const dist = ownerDist(o, mode);
+    if (dist) {
+      const yTop = y(dist.x1), yBot = y(dist.x0);
+      const gradId = `og-${o.owner.replace(/[^a-z]/gi, "")}`;
+      const grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+      grad.setAttribute("id", gradId);
+      grad.setAttribute("gradientUnits", "userSpaceOnUse");
+      grad.setAttribute("x1", 0); grad.setAttribute("x2", 0);
+      grad.setAttribute("y1", yTop); grad.setAttribute("y2", yBot);
+      for (let k = 80; k >= 0; k -= 2) {
+        const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+        stop.setAttribute("offset", ((80 - k) / 80).toFixed(3));
+        stop.setAttribute("stop-color", color);
+        stop.setAttribute("stop-opacity", Math.pow(dist.d[k], 0.6).toFixed(3));
+        grad.appendChild(stop);
+      }
+      svg.appendChild(grad);
+      const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bar.setAttribute("x", cx - barHW); bar.setAttribute("width", barHW * 2);
+      bar.setAttribute("y", yTop); bar.setAttribute("height", Math.max(2, yBot - yTop));
+      bar.setAttribute("fill", `url(#${gradId})`);
+      g.appendChild(bar);
+    } else if (o.has_ci) {
+      // interval known but no density yet: uniform faded bar over the 80% interval
+      const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      bar.setAttribute("x", cx - barHW); bar.setAttribute("width", barHW * 2);
+      bar.setAttribute("y", y(m.hi)); bar.setAttribute("height", Math.max(2.5, y(m.lo) - y(m.hi)));
+      bar.setAttribute("fill", color); bar.setAttribute("fill-opacity", "0.5");
+      g.appendChild(bar);
     } else {
-      r.wh.setAttribute("d", "");
-      r.val.textContent = fmtM(m.median);
-      r.val.setAttribute("x", x(m.median) + 7);
+      // point estimate (xAI): a solid tick at the median
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", cx - barHW); tick.setAttribute("x2", cx + barHW);
+      tick.setAttribute("y1", y(m.median)); tick.setAttribute("y2", y(m.median));
+      tick.setAttribute("stroke", color); tick.setAttribute("stroke-width", "3");
+      g.appendChild(tick);
     }
-    r.val.setAttribute("y", 4);
-    if (!animate) { r.g.getBoundingClientRect(); r.g.style.transition = ""; }
+    const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    val.setAttribute("class", "value-label");
+    val.setAttribute("x", cx);
+    val.setAttribute("y", y(m.median) + (o.has_ci ? 3.5 : -6));
+    val.setAttribute("text-anchor", "middle");
+    val.textContent = fmtM(m.median);
+    const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    name.setAttribute("class", "owner-label");
+    name.setAttribute("x", cx);
+    name.setAttribute("y", owners.length > 8 ? (i % 2 ? H - 8 : H - 24) : H - 8);
+    name.setAttribute("text-anchor", "middle");
+    if (owners.length > 8) name.setAttribute("font-size", "10");
+    name.textContent = o.owner;
+    const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    hit.setAttribute("x", cx - slotW / 2); hit.setAttribute("y", TOPV);
+    hit.setAttribute("width", slotW); hit.setAttribute("height", plotH);
+    hit.setAttribute("fill", "transparent");
+    hit.addEventListener("mousemove", ev => showTip(o, ev));
+    hit.addEventListener("mouseleave", hideTip);
+    hit.addEventListener("click", ev => showTip(o, ev));
+    g.append(val, name, hit);
+    svg.appendChild(g);
   });
-
   document.getElementById("mode-note").textContent = MODES[mode].note;
-}
-
-// On hover: split the bar into chip-type segments (median shares).
-// Chips under 10% of the owner total are folded into a final "Other" segment.
-const SEG_OPACITY = [1, 0.78, 0.58, 0.42, 0.3];
-const SHORT_CHIP = {
-  "H100/H200": "H100", "Trainium1": "Trn1", "Trainium2": "Trn2",
-  "TPU v4": "v4", "TPU v4i": "v4i", "TPU v5e": "v5e", "TPU v5p": "v5p",
-  "TPU v6e": "v6e", "TPU v7": "v7",
-  "Instinct MI300X": "MI300X", "Instinct MI325X": "MI325X",
-  "Instinct MI350X": "MI350X", "Instinct MI355X": "MI355X",
-  "Other": "Oth",
-  "H100/H200 (rented offshore)": "H100/H200", "H100/H200/B200 (rented offshore)": "H100–B200",
-  "H100-class (Azure, rented)": "Azure", "H100-class (other providers, rented)": "H100",
-  "B200/GB200 (rented offshore)": "B200", "B200/H100 (Datasection rental)": "B200/H100",
-  "H100 (smuggled)": "H100", "B200 (smuggled)": "B200", "T-Head PPU": "PPU",
-  "Ascend 910B": "910B", "Ascend 910C": "910C", "Ascend 910A": "910A",
-  "Kunlun P800": "P800", "Kunlun II": "KII", "Cambricon MLU": "MLU",
-  "Pre-2022 legacy": "Legacy", "Enflame": "Enflame",
-};
-function segsOf(o) {
-  const total = o.modes[mode].median;
-  const chips = Object.entries(o.chips)
-    .map(([chip, c]) => ({ chip, v: c[mode] }))
-    .sort((a, b) => b.v - a.v);
-  const segs = chips.filter(c => c.v / total >= 0.10);
-  const rest = chips.filter(c => c.v / total < 0.10);
-  const restSum = rest.reduce((s, c) => s + c.v, 0);
-  if (restSum > 0) segs.push({ chip: rest.length === 1 ? rest[0].chip : "Other", v: restSum });
-  return { segs, total };
-}
-function clearSegs(r) {
-  r.segsG.innerHTML = "";
-  r.segsKey = null;
-  r.bar.style.visibility = "";
-  r.wh.style.visibility = "";
-}
-function buildSegs(o) {
-  const r = refs.rows[o.owner];
-  const key = o.owner + "|" + mode;
-  if (r.segsKey === key) return;
-  clearSegs(r);
-  r.segsKey = key;
-  r.bar.style.visibility = "hidden";
-  r.wh.style.visibility = "hidden";
-  const { segs, total } = segsOf(o);
-  const x = refs.x;
-  let cursor = x(0);
-  segs.forEach((s, i) => {
-    const wFull = x(s.v) - x(0);
-    const w = Math.max(0, i < segs.length - 1 ? wFull - 1 : wFull);   // 1px gap between segments
-    const op = SEG_OPACITY[Math.min(i, SEG_OPACITY.length - 1)];
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.setAttribute("class", "seg-rect");
-    rect.setAttribute("x", cursor); rect.setAttribute("y", -BAR_H / 2);
-    rect.setAttribute("width", w); rect.setAttribute("height", BAR_H);
-    rect.setAttribute("fill-opacity", op);
-    r.segsG.appendChild(rect);
-    const short = SHORT_CHIP[s.chip] || s.chip;
-    const fits = t => t.length * 5.2 + 6 < w;
-    const label = [s.chip, short].find(fits) || null;
-    if (label) {
-      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      t.setAttribute("class", "seg-label " + (op >= 0.7 ? "on-dark" : "on-light"));
-      t.setAttribute("x", cursor + w / 2); t.setAttribute("y", 3.5);
-      t.setAttribute("text-anchor", "middle");
-      t.textContent = label;
-      r.segsG.appendChild(t);
-    }
-    cursor += wFull;
-  });
 }
 
 function showTip(o, ev) {
@@ -484,9 +422,9 @@ document.addEventListener("click", ev => { if (!ev.target.closest("#svg-main")) 
 document.getElementById("mode-select").addEventListener("change", ev => {
   mode = ev.target.value;
   hideTip();
-  render(true);
+  render();
 });
-window.addEventListener("resize", () => { render(false); if (labsPayload && labsPayload.tf) renderTF(); });
+window.addEventListener("resize", () => { render(); if (labsPayload && labsPayload.tf) renderTF(); });
 
 // ---- Methodology section ----
 function buildMethod() {
@@ -534,7 +472,7 @@ function buildMethod() {
 
 document.getElementById("pulled").textContent = DATA.meta.pulled;
 buildMethod();
-render(false);
+render();
 
 // ---- Chinese labs section (encrypted; decrypts client-side with password) ----
 let labsPayload = null;
@@ -641,7 +579,6 @@ function renderLabs() {
     val.setAttribute("class", "value-label");
     val.setAttribute("x", cx); val.setAttribute("y", ym + 3.5);
     val.setAttribute("text-anchor", "middle");
-    val.setAttribute("style", "paint-order: stroke; stroke: var(--bg); stroke-width: 3px;");
     val.textContent = labsFmt(m.median);
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
@@ -840,13 +777,13 @@ function applyCompanies(companies) {
       chips[ch.label] = { units: ch.chips, train_fp8: ch.w * scale, train_fp4: ch.w * scale * ch.m4,
                           inference: ch.mbw ? ch.w * scale * ch.mbw : 0 };
     }
-    extraOwners.push({ owner: c.name, cn: true, has_ci: true, modes, chips,
+    extraOwners.push({ owner: c.name, cn: true, has_ci: true, modes, chips, dist: c.dist || null,
                        owned: c.owned, rented: c.rented, total_median: c.total_median,
                        factors: c.factors, bw_coverage: c.bw_coverage });
   }
   document.getElementById("cn-legend").style.display = "block";
   document.querySelector("h1").textContent = "US and Chinese AI compute owners, end of 2025";
-  render(false);
+  render();
 }
 
 async function labsUnlock(pw, remember) {

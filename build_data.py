@@ -168,6 +168,28 @@ for o in US_OWNERS:
             # Displayed intervals are 80% (p10-p90) for comparability with the
             # Chinese-company 80% CIs; Epoch's own inputs are 5th/50th/95th.
             m["lo"], m["hi"] = pct(sums, 0.10), pct(sums, 0.90)
+            # KDE density for the fade-bar view (per mode: chip mixes differ,
+            # so the distribution shape is mode-specific). Subsampled for speed.
+            sub = sums[::5]
+            n = len(sub)
+            mean = sum(sub) / n
+            std = (sum((v - mean) ** 2 for v in sub) / n) ** 0.5
+            iqr = pct(sums, 0.75) - pct(sums, 0.25)
+            bw = 0.9 * min(std, iqr / 1.349) * n ** -0.2
+            x0 = max(0.0, pct(sums, 0.001) - 2 * bw)
+            x1 = pct(sums, 0.997) + 2 * bw
+            grid = [x0 + (x1 - x0) * i / 80 for i in range(81)]
+            dens = []
+            for gx in grid:
+                acc = 0.0
+                for xv in sub:
+                    z = (gx - xv) / bw
+                    if -6 < z < 6:
+                        acc += math.exp(-0.5 * z * z)
+                dens.append(acc)
+            dmax = max(dens)
+            m["dist"] = {"x0": round(x0), "x1": round(x1),
+                         "d": [round(v / dmax, 3) for v in dens]}
         entry["modes"][mode] = m
         for rw in rws:
             entry["chips"].setdefault(rw["chip"], {"units": rw["units_med"]})[mode] = rw["units_med"] * ratios[rw["chip"]]
