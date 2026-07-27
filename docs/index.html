@@ -76,6 +76,9 @@
 
   .bar-rect { fill: var(--bar); transition: width .45s ease, x .45s ease; }
   .bar-cn .bar-rect, .bar-cn .seg-rect { fill: var(--bar-cn); }
+  .violin { fill: var(--bar); fill-opacity: .42; stroke: var(--bar); stroke-width: 1.3; }
+  .median-line { stroke: var(--text); stroke-width: 1.6; }
+  .pct-tick { stroke: var(--text-2); stroke-width: 1; }
   #cn-legend { display: none; }
   #cn-legend, #tf-legend { color: var(--text-2); font-size: 12px; margin: 6px 0 0; line-height: 1.5; }
   #cn-legend .sw, #tf-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
@@ -568,80 +571,106 @@ function renderLabs() {
   if (!labsPayload) return;
   const el = document.getElementById("labs-chart");
   const labs = [...labsPayload.labs].sort((a, b) => labsVal(b).median - labsVal(a).median);
-  const maxVal = Math.max(...labs.map(l => labsVal(l).p90));
   const W = Math.min(el.clientWidth || 628, 660);
-  const L_LEFT = 76, L_RIGHT = 56;
-  const H = TOP + labs.length * ROW_H + BOTTOM;
-  const plotW = W - L_LEFT - L_RIGHT;
-  const x = v => L_LEFT + (v / (maxVal * 1.03)) * plotW;
+  const H = 340, TOPV = 26, BOT = 28, LEFTV = 52, RIGHTV = 10;
+  const plotW = W - LEFTV - RIGHTV, plotH = H - TOPV - BOT;
+  const fac = l => l.median ? labsVal(l).median / l.median : 1;
+  const maxY = Math.max(...labs.map(l => (l.dist ? l.dist.x1 : labsVal(l).p90 * 1.15) * fac(l))) * 1.03;
+  const y = v => TOPV + plotH - (v / maxY) * plotH;
   el.innerHTML = "";
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("width", "100%");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("height", H);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Bar chart of Chinese AI developers in GB300 equivalents");
+  svg.setAttribute("aria-label", "Distributions of Chinese AI developers' compute in GB300 equivalents");
   el.appendChild(svg);
-  const step = niceStep(maxVal);
-  for (let v = 0; v <= maxVal * 1.03; v += step) {
+  const step = niceStep(maxY);
+  for (let v = 0; v <= maxY; v += step) {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.setAttribute("class", v === 0 ? "zero-line" : "grid-line");
-    line.setAttribute("x1", x(v)); line.setAttribute("x2", x(v));
-    line.setAttribute("y1", TOP - 4); line.setAttribute("y2", H - BOTTOM);
+    line.setAttribute("x1", LEFTV); line.setAttribute("x2", W - RIGHTV);
+    line.setAttribute("y1", y(v)); line.setAttribute("y2", y(v));
     svg.appendChild(line);
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
     t.setAttribute("class", "axis-label");
-    t.setAttribute("x", x(v)); t.setAttribute("y", TOP - 9);
-    t.setAttribute("text-anchor", v === 0 ? "start" : "middle");
+    t.setAttribute("x", LEFTV - 6); t.setAttribute("y", y(v) + 3.5);
+    t.setAttribute("text-anchor", "end");
     t.textContent = v === 0 ? "0" : (v / 1000) + "k";
     svg.appendChild(t);
   }
   const unit = document.createElementNS("http://www.w3.org/2000/svg", "text");
   unit.setAttribute("class", "axis-label");
-  unit.setAttribute("x", W); unit.setAttribute("y", TOP - 9);
+  unit.setAttribute("x", W - RIGHTV); unit.setAttribute("y", 12);
   unit.setAttribute("text-anchor", "end");
   unit.textContent = "GB300e";
   svg.appendChild(unit);
+  const slotW = plotW / labs.length;
+  const halfMax = Math.min(46, slotW * 0.32);
   labs.forEach((l, i) => {
-    const m = labsVal(l);
-    const yMid = TOP + i * ROW_H + ROW_H / 2;
+    const cx = LEFTV + i * slotW + slotW / 2;
+    const f = fac(l), m = labsVal(l);
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    g.setAttribute("transform", `translate(0, ${yMid})`);
-    const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    name.setAttribute("class", "owner-label");
-    name.setAttribute("x", L_LEFT - 8); name.setAttribute("y", 4);
-    name.setAttribute("text-anchor", "end");
-    name.textContent = l.name;
-    const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    bar.setAttribute("class", "bar-rect");
-    bar.setAttribute("x", L_LEFT); bar.setAttribute("y", -BAR_H / 2);
-    bar.setAttribute("width", Math.max(0, x(m.median) - L_LEFT));
-    bar.setAttribute("height", BAR_H);
-    const wh = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    wh.setAttribute("class", "whisker");
-    const x10 = x(m.p10), x90 = x(m.p90), cap = 3.5;
-    wh.setAttribute("d", `M${x10} ${-cap} V${cap} M${x10} 0 H${x90} M${x90} ${-cap} V${cap}`);
+    const hwAt = v => {   // half-width of the violin at value v
+      if (!l.dist) return halfMax * 0.6;
+      const { x0, x1, d } = l.dist;
+      const k = (v / f - x0) / (x1 - x0) * 80;
+      if (k <= 0 || k >= 80) return 0;
+      const k0 = Math.floor(k);
+      return (d[k0] + (d[k0 + 1] - d[k0]) * (k - k0)) * halfMax;
+    };
+    if (l.dist) {
+      const { x0, x1, d } = l.dist;
+      const pts = d.map((dv, k) => [y((x0 + (x1 - x0) * k / 80) * f), dv * halfMax]);
+      let path = `M${(cx + pts[0][1]).toFixed(1)} ${pts[0][0].toFixed(1)}`;
+      for (const [py, hw] of pts) path += `L${(cx + hw).toFixed(1)} ${py.toFixed(1)} `;
+      for (let k = pts.length - 1; k >= 0; k--) path += `L${(cx - pts[k][1]).toFixed(1)} ${pts[k][0].toFixed(1)} `;
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("class", "violin");
+      p.setAttribute("d", path + "Z");
+      g.appendChild(p);
+    }
+    for (const q of [m.p10, m.p90]) {   // 80%-interval ticks
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("class", "pct-tick");
+      const hw = Math.max(hwAt(q), 4);
+      tick.setAttribute("x1", cx - hw); tick.setAttribute("x2", cx + hw);
+      tick.setAttribute("y1", y(q)); tick.setAttribute("y2", y(q));
+      g.appendChild(tick);
+    }
+    const ym = y(m.median), hwm = Math.max(hwAt(m.median), 8);
+    const med = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    med.setAttribute("class", "median-line");
+    med.setAttribute("x1", cx - hwm - 4); med.setAttribute("x2", cx + hwm + 4);
+    med.setAttribute("y1", ym); med.setAttribute("y2", ym);
     const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
     val.setAttribute("class", "value-label");
-    val.setAttribute("x", x90 + 7); val.setAttribute("y", 4);
+    val.setAttribute("x", cx); val.setAttribute("y", ym - 6);
+    val.setAttribute("text-anchor", "middle");
     val.textContent = labsFmt(m.median);
+    const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    name.setAttribute("class", "owner-label");
+    name.setAttribute("x", cx); name.setAttribute("y", H - 8);
+    name.setAttribute("text-anchor", "middle");
+    name.textContent = l.name;
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    hit.setAttribute("x", 0); hit.setAttribute("y", -ROW_H / 2);
-    hit.setAttribute("width", W); hit.setAttribute("height", ROW_H);
+    hit.setAttribute("x", cx - slotW / 2); hit.setAttribute("y", TOPV);
+    hit.setAttribute("width", slotW); hit.setAttribute("height", plotH);
     hit.setAttribute("fill", "transparent");
     hit.addEventListener("mousemove", ev => showLabsTip(l, ev));
     hit.addEventListener("mouseleave", hideTip);
     hit.addEventListener("click", ev => showLabsTip(l, ev));
-    g.append(name, bar, wh, val, hit);
+    g.append(med, val, name, hit);
     svg.appendChild(g);
   });
   document.getElementById("labs-mode-note").textContent = LABS_MODES[labsMode];
   document.getElementById("labs-fine").innerHTML =
-    `Hover or tap a bar for ownership, chip-class breakdown, and sources. FP4 and Memory Bandwidth modes rescale the
-     sheet's FP8-basis medians and CIs by a fixed per-lab factor from the median chip mix, so they carry the same
-     relative uncertainty. Tooltip chip rows are median counts from the model's own per-chip inputs, with each
-     chip's share of the current mode's total; spend-based capacity (MiniMax, Moonshot, Zhipu rented) is
-     H800-denominated, not a physical chip census. Whiskers are 80% CIs (p10–p90), unlike the 90% CIs above.
+    `Each shape is the smoothed density of the model's own Monte Carlo draws (1,700–5,000 per developer;
+     Gaussian KDE), so it shows where the probability mass actually sits — not a fitted curve. The bold line and
+     number mark the median; thin ticks mark the 80% interval (p10–p90). Hover or tap a shape for ownership,
+     chip-class breakdown, and sources. FP4 and Memory Bandwidth modes rescale the FP8-basis draws by a fixed
+     per-lab factor from the median chip mix. Spend-based capacity (MiniMax, Moonshot, Zhipu rented) is
+     H800-denominated, not a physical chip census.
      Sheet last updated ${labsPayload.updated_sheet} · synced ${labsPayload.synced} ·
      Source: <a href="${labsPayload.sheet_url}">Chinese AI Developer Compute — Monte Carlo (internal Google Sheet)</a>.`;
 }
