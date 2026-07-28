@@ -192,7 +192,7 @@
   <section id="labs">
     <header>
       <div>
-        <h2>Chinese AI developers, end of 2025</h2>
+        <h2>AI developer compute access, end of 2025</h2>
         <p class="subtitle">Estimated accessible compute in <strong>GB300-equivalents (GB300e)</strong> — color intensity shows the probability distribution</p>
       </div>
       <select id="labs-mode-select" style="display:none" aria-label="Conversion mode">
@@ -211,6 +211,8 @@
     </div>
     <div id="labs-body" style="display:none">
       <p class="mode-note" id="labs-mode-note"></p>
+      <p id="labs-legend" style="color:var(--text-2);font-size:12px;margin:6px 0 0;line-height:1.5"><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--bar)"></span>US frontier labs (Epoch, preview data)
+      <span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px;background:var(--bar-cn)"></span>Chinese labs (internal model)</p>
       <div id="labs-chart"></div>
       <p class="fine" id="labs-fine"></p>
     </div>
@@ -501,7 +503,9 @@ const labsVal = l => l.modes ? l.modes[labsMode] : { median: l.median, p10: l.p1
 function renderLabs() {
   if (!labsPayload) return;
   const el = document.getElementById("labs-chart");
-  const labs = [...labsPayload.labs].sort((a, b) => labsVal(b).median - labsVal(a).median);
+  const labs = [...labsPayload.labs.map(l => ({ ...l, cn: true })),
+                ...(labsPayload.frontier || [])]
+    .sort((a, b) => labsVal(b).median - labsVal(a).median);
   const W = Math.min(el.clientWidth || 628, 660);
   const H = 340, TOPV = 26, BOT = 28, LEFTV = 52, RIGHTV = 10;
   const plotW = W - LEFTV - RIGHTV, plotH = H - TOPV - BOT;
@@ -552,7 +556,7 @@ function renderLabs() {
       grad.setAttribute("gradientUnits", "userSpaceOnUse");
       grad.setAttribute("x1", 0); grad.setAttribute("x2", 0);
       grad.setAttribute("y1", yTop); grad.setAttribute("y2", yBot);
-      const barColor = getComputedStyle(document.documentElement).getPropertyValue("--bar").trim();
+      const barColor = getComputedStyle(document.documentElement).getPropertyValue(l.cn ? "--bar-cn" : "--bar").trim();
       for (let k = 80; k >= 0; k -= 2) {   // top (x1) -> bottom (x0)
         const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
         stop.setAttribute("offset", ((80 - k) / 80).toFixed(3));
@@ -572,7 +576,7 @@ function renderLabs() {
     val.setAttribute("class", "value-label");
     val.setAttribute("x", cx); val.setAttribute("y", ym + 3.5);
     val.setAttribute("text-anchor", "middle");
-    val.textContent = labsFmt(m.median) + (i === 0 ? " GB300e" : "");
+    val.textContent = labsFmt(m.median);
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
     name.setAttribute("x", cx); name.setAttribute("y", H - 8);
@@ -590,9 +594,13 @@ function renderLabs() {
   });
   document.getElementById("labs-mode-note").textContent = LABS_MODES[labsMode];
   document.getElementById("labs-fine").innerHTML =
-    `Each bar's color intensity is the smoothed density of the model's own Monte Carlo draws (1,700–5,000 per
-     developer; Gaussian KDE) — the bar fades out where outcomes get unlikely. The printed number sits at
-     the median. Hover or tap a bar for ownership,
+    `US frontier labs are Epoch AI's estimates from the unreleased Frontier AI Compute Hub (preview snapshot
+     2026-07-14; H100e converted at ÷2.5265; densities and 80% CIs are two-piece lognormals fitted to Epoch's
+     published p5/p50/p95, since no draws are published; FP4/BW mode factors are approximated — OpenAI from
+     Epoch's explicit chip split, DeepMind/Meta MSL from the owning company's fleet mix, Anthropic's
+     non-Trainium share treated as H100/H200-class). Chinese labs: each bar's color intensity is the smoothed
+     density of the model's own Monte Carlo draws (1,700–5,000 per developer; Gaussian KDE). The printed
+     number sits at the median. Hover or tap a Chinese-lab bar for ownership,
      chip-class breakdown, and sources. FP4 and Memory Bandwidth modes rescale the FP8-basis draws by a fixed
      per-lab factor from the median chip mix. Spend-based capacity (MiniMax, Moonshot, Zhipu rented) is
      H800-denominated, not a physical chip census.
@@ -601,6 +609,20 @@ function renderLabs() {
 }
 
 function showLabsTip(l, ev) {
+  if (l.mix_note) {   // US frontier lab from the Epoch preview
+    const m = labsVal(l);
+    tooltipEl.innerHTML = `<h3>${l.name} — ${fmtM(m.median)} GB300e</h3>
+      <p class="tt-ci">80% CI: ${fmtM(m.p10)}–${fmtM(m.p90)} (fitted to Epoch's p5/p50/p95)</p>
+      <p class="tt-src">Epoch AI Frontier AI Compute Hub (preview, snapshot 2026-07-14); H100e ÷ 2.5265.
+      ${labsMode !== "fp8" ? `Mode factor ×${l.factors[labsMode === "bw" ? "bw" : "fp4"].toFixed(2)}: ${l.mix_note}.` : ""}</p>`;
+    tooltipEl.style.display = "block";
+    const tw = tooltipEl.offsetWidth, th = tooltipEl.offsetHeight;
+    let tx = ev.clientX + 12, ty = ev.clientY + 10;
+    if (tx + tw > window.innerWidth - 8) tx = ev.clientX - tw - 12;
+    if (ty + th > window.innerHeight - 8) ty = ev.clientY - th - 10;
+    tooltipEl.style.left = tx + "px"; tooltipEl.style.top = ty + "px";
+    return;
+  }
   const m = labsVal(l);
   let html = `<h3>${l.name} — ${labsFmt(m.median)} GB300e</h3>`;
   html += `<p class="tt-ci">80% CI: ${labsFmt(m.p10)}–${labsFmt(m.p90)} · ${l.ownership}</p><table>`;
