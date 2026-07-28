@@ -657,7 +657,7 @@ let tfMode = "train_fp8";
 const TF_NOTES = {
   train_fp8: "Conversion: chip\u2019s dense FP8-basis FLOP/s \u00d7 units shipped \u00f7 GB300 FP8 (5 PFLOP/s).",
   train_fp4: "Conversion: dense FP4 \u00d7 units \u00f7 GB300 FP4 (15 PFLOP/s); chips without FP4 hardware fall back to FP8-basis \u00f7 3.",
-  inference: "Conversion: memory bandwidth \u00d7 units \u00f7 GB300\u2019s 8 TB/s. Chips without a sourced bandwidth spec are excluded \u2014 tooltips disclose coverage.",
+  inference: "Conversion: memory bandwidth \u00d7 units \u00f7 GB300\u2019s 8 TB/s. All chips carry announced or credibly-reported specs; projected specs (TPU v9, MI500, Maia 300, Cambricon MLU) are flagged in tooltips.",
 };
 function tfChipVal(c, j, mode) {
   const fp8 = c.h100e[j] * 1000 / 2.5265;
@@ -684,7 +684,14 @@ function renderTF() {
         if (v > 0) byVendor[c.vendor] = (byVendor[c.vendor] || 0) + v;
       }
       const segs = tf.vendors.map(vn => ({ vendor: vn, v: byVendor[vn] || 0 })).filter(s => s.v > 0);
-      bars.push({ year, j, ctry, segs, total: segs.reduce((s, x) => s + x.v, 0),
+      const total = segs.reduce((s, x) => s + x.v, 0);
+      let estV = 0;
+      for (const c of tf.chips) {
+        if (c.country !== ctry || !c.est) continue;
+        const v = tfChipVal(c, j, tfMode);
+        if (v) estV += v;
+      }
+      bars.push({ year, j, ctry, segs, total, estShare: total > 0 ? estV / total : 0,
                   cov: fp8tot > 0 ? 1 - excludedFp8 / fp8tot : 1 });
     }
   });
@@ -761,8 +768,8 @@ function showTfTip(b, ev) {
   const us = b.ctry === "US";
   let html = `<h3>${us ? "United States" : "China"} ${b.year} \u2014 ${fmtM(b.total)} GB300e</h3>`;
   html += `<p class="tt-ci">${us ? "NVIDIA, Google, Amazon, AMD, Intel, Microsoft, Meta" : "Huawei + Cambricon"} \u00b7 chips designed by ${us ? "US" : "Chinese"} vendors, shipped in ${b.year.replace("F", "")}</p>`;
-  if (tfMode === "inference" && b.cov < 0.995) {
-    html += `<p class="tt-src">Bandwidth specs cover ${Math.round(b.cov * 100)}% of this bar\u2019s FP8-basis total \u2014 unannounced chips excluded</p>`;
+  if (tfMode !== "train_fp8" && b.estShare > 0.005) {
+    html += `<p class="tt-src">${Math.round(b.estShare * 100)}% of this bar rests on projected specs (unannounced chips, clearly-labeled scaling estimates)</p>`;
   }
   tooltipEl.innerHTML = html;
   tooltipEl.style.display = "block";
@@ -825,7 +832,7 @@ async function labsUnlock(pw, remember) {
       document.getElementById("tf").style.display = "";
       document.getElementById("tf-fine").innerHTML =
         `Source: <a href="${labsPayload.tf.sheet_url}">TrendForce, AI Chips Shipment Forecast 2022\u20132027F (July 2026 delivery; internal H100e conversion sheet)</a>.
-        Licensed for internal use \u2014 do not publish chip- or vendor-level detail. Units are chips shipped (sold), not deployed;
+        Licensed for internal use \u2014 do not publish chip- or vendor-level detail. Bandwidth and FP4 specs are announced or credibly reported for all chips except TPU v9, MI500, Maia 300, and the Cambricon MLU blend, which use clearly-labeled scaling projections (research memo 2026-07-28). Units are chips shipped (sold), not deployed;
         GB200/GB300/VR200 rows count individual GPUs. 2025\u20132027 are TrendForce forecasts (F).
         China = Huawei + Cambricon (chips designed by Chinese vendors, wherever fabbed); US = NVIDIA, Google, Amazon, AMD, Intel, Microsoft, Meta.`;
       renderTF();
