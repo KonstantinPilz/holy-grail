@@ -511,7 +511,7 @@ function renderLabs() {
                 ...(labsPayload.frontier || [])]
     .sort((a, b) => labsVal(b).median - labsVal(a).median);
   const W = Math.min(el.clientWidth || 628, 660);
-  const H = 340, TOPV = 26, BOT = 28, LEFTV = 52, RIGHTV = 10;
+  const H = 354, TOPV = 26, BOT = 42, LEFTV = 52, RIGHTV = 10;
   const plotW = W - LEFTV - RIGHTV, plotH = H - TOPV - BOT;
   const fac = l => l.median ? labsVal(l).median / l.median : 1;
   const maxY = Math.max(...labs.map(l => (l.dist ? l.dist.x1 : labsVal(l).p90 * 1.15) * fac(l))) * 1.03;
@@ -575,17 +575,16 @@ function renderLabs() {
       bar.setAttribute("fill", `url(#${gradId})`);
       g.appendChild(bar);
     }
-    const ym = y(m.median);
-    const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    val.setAttribute("class", "value-label");
-    val.setAttribute("x", cx); val.setAttribute("y", ym + 3.5);
-    val.setAttribute("text-anchor", "middle");
-    val.textContent = labsFmt(m.median);
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
-    name.setAttribute("x", cx); name.setAttribute("y", H - 8);
+    name.setAttribute("x", cx); name.setAttribute("y", H - 22);
     name.setAttribute("text-anchor", "middle");
     name.textContent = l.name;
+    const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    val.setAttribute("class", "value-label");
+    val.setAttribute("x", cx); val.setAttribute("y", H - 7);
+    val.setAttribute("text-anchor", "middle");
+    val.textContent = `(${labsFmt(m.median)})`;
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     hit.setAttribute("x", cx - slotW / 2); hit.setAttribute("y", TOPV);
     hit.setAttribute("width", slotW); hit.setAttribute("height", plotH);
@@ -600,7 +599,7 @@ function renderLabs() {
   document.getElementById("labs-fine").innerHTML =
     `US labs: Epoch AI Frontier AI Compute Hub (preview). Chinese labs:
      <a href="${labsPayload.sheet_url}">internal Monte Carlo model</a> (synced ${labsPayload.synced}).
-     Color = probability density; the number marks the median. Method details in the methods doc.`;
+     Color = probability density; medians in brackets. Method details in the methods doc.`;
 }
 
 function showLabsTip(l, ev) {
