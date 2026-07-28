@@ -303,18 +303,14 @@ function render() {
     line.setAttribute("y1", TOP2 - 4); line.setAttribute("y2", H - BOT2);
     svg.appendChild(line);
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("class", "axis-label");
-    t.setAttribute("x", x(v)); t.setAttribute("y", TOP2 - 9);
-    t.setAttribute("text-anchor", v === 0 ? "start" : "middle");
-    t.textContent = v === 0 ? "0" : fmtTick(v);
+    const isLast = v + step > maxX;
+    t.setAttribute("class", isLast ? "axis-unit" : "axis-label");
+    t.setAttribute("x", isLast ? Math.min(x(v) + 30, W) : x(v));
+    t.setAttribute("y", TOP2 - 9);
+    t.setAttribute("text-anchor", v === 0 ? "start" : isLast ? "end" : "middle");
+    t.textContent = v === 0 ? "0" : fmtTick(v) + (isLast ? " GB300e" : "");
     svg.appendChild(t);
   }
-  const unit = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  unit.setAttribute("class", "axis-unit");
-  unit.setAttribute("x", W); unit.setAttribute("y", TOP2 - 9);
-  unit.setAttribute("text-anchor", "end");
-  unit.textContent = "GB300e";
-  svg.appendChild(unit);
   const rootStyle = getComputedStyle(document.documentElement);
   owners.forEach((o, i) => {
     const yMid = TOP2 + i * ROWH + ROWH / 2;
@@ -365,7 +361,7 @@ function render() {
     t1.textContent = o.owner + " ";
     const t2 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
     t2.setAttribute("class", "value-label");
-    t2.textContent = fmtM(m.median) + (i === 0 ? " GB300e" : "");
+    t2.textContent = `(${fmtM(m.median)})`;
     name.append(t1, t2);
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     hit.setAttribute("x", 0); hit.setAttribute("y", yMid - ROWH / 2);
