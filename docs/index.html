@@ -185,9 +185,7 @@
   <div id="tooltip" aria-hidden="true"></div>
 
   <p class="fine">
-    Epoch publishes a point estimate only for xAI, so its bar has no interval.
-    US owners only — Epoch’s PRC aggregate and global “Other” bucket are excluded. Counts are cumulative chips ever
-    installed, without retirement adjustment. Hover or tap a bar for the chip-level breakdown.
+    Source: <a href="https://epoch.ai/data/ai-chip-owners">Epoch AI, Data on AI Chip Owners</a>. xAI: point estimate only. Hover or tap a bar for chip detail.
   </p>
 
   <details>
@@ -600,18 +598,9 @@ function renderLabs() {
   });
   document.getElementById("labs-mode-note").textContent = LABS_MODES[labsMode];
   document.getElementById("labs-fine").innerHTML =
-    `US frontier labs are Epoch AI's estimates from the unreleased Frontier AI Compute Hub (preview snapshot
-     2026-07-14; H100e converted at ÷2.5265; densities and 80% CIs are two-piece lognormals fitted to Epoch's
-     published p5/p50/p95, since no draws are published; FP4/BW mode factors are approximated — OpenAI from
-     Epoch's explicit chip split, DeepMind/Meta MSL from the owning company's fleet mix, Anthropic's
-     non-Trainium share treated as H100/H200-class). Chinese labs: each bar's color intensity is the smoothed
-     density of the model's own Monte Carlo draws (1,700–5,000 per developer; Gaussian KDE). The printed
-     number sits at the median. Hover or tap a Chinese-lab bar for ownership,
-     chip-class breakdown, and sources. FP4 and Memory Bandwidth modes rescale the FP8-basis draws by a fixed
-     per-lab factor from the median chip mix. Spend-based capacity (MiniMax, Moonshot, Zhipu rented) is
-     H800-denominated, not a physical chip census.
-     Sheet last updated ${labsPayload.updated_sheet} · synced ${labsPayload.synced} ·
-     Source: <a href="${labsPayload.sheet_url}">Chinese AI Developer Compute — Monte Carlo (internal Google Sheet)</a>.`;
+    `US labs: Epoch AI Frontier AI Compute Hub (preview). Chinese labs:
+     <a href="${labsPayload.sheet_url}">internal Monte Carlo model</a> (synced ${labsPayload.synced}).
+     Color = probability density; the number marks the median. Method details in the methods doc.`;
 }
 
 function showLabsTip(l, ev) {
@@ -850,10 +839,7 @@ async function labsUnlock(pw, remember) {
     if (labsPayload.tf) {
       document.getElementById("tf").style.display = "";
       document.getElementById("tf-fine").innerHTML =
-        `Source: <a href="${labsPayload.tf.sheet_url}">TrendForce, AI Chips Shipment Forecast 2022\u20132027F (July 2026 delivery; internal H100e conversion sheet)</a>.
-        Licensed for internal use \u2014 do not publish chip- or vendor-level detail. Bandwidth and FP4 specs are announced or credibly reported for all chips except TPU v9, MI500, Maia 300, and the Cambricon MLU blend, which use clearly-labeled scaling projections (research memo 2026-07-28). Units are chips shipped (sold), not deployed;
-        GB200/GB300/VR200 rows count individual GPUs. 2025\u20132027 are TrendForce forecasts (F).
-        China = Huawei + Cambricon (chips designed by Chinese vendors, wherever fabbed); US = NVIDIA, Google, Amazon, AMD, Intel, Microsoft, Meta.`;
+        `Source: <a href="${labsPayload.tf.sheet_url}">TrendForce (internal license \u2014 aggregates only; conversion sheet)</a>. 2025\u201327 are forecasts. Method details in the methods doc.`;
       renderTF();
     }
     renderLabs();
