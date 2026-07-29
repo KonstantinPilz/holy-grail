@@ -284,7 +284,7 @@ function render() {
   const owners = [...DATA.owners, ...extraOwners]
     .sort((a, b) => b.modes[mode].median - a.modes[mode].median);
   const W = Math.min(el.clientWidth || 628, 660);
-  const ROWH = 32, BARH = 18, LEFT2 = 156, RIGHT2 = 12, TOP2 = 24, BOT2 = 6;
+  const ROWH = 40, BARH = 18, LEFT2 = 96, RIGHT2 = 12, TOP2 = 24, BOT2 = 6;
   const H = TOP2 + owners.length * ROWH + BOT2;
   const plotW = W - LEFT2 - RIGHT2;
   const maxX = Math.max(...owners.map(o => {
@@ -358,17 +358,18 @@ function render() {
       tick.setAttribute("stroke", color); tick.setAttribute("stroke-width", "3");
       g.appendChild(tick);
     }
-    // owner name + median value together in the left gutter
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    name.setAttribute("class", "owner-label");
     name.setAttribute("x", LEFT2 - 8); name.setAttribute("y", yMid + 4);
     name.setAttribute("text-anchor", "end");
-    const t1 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    t1.setAttribute("class", "owner-label");
-    t1.textContent = o.owner + " ";
-    const t2 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    t2.setAttribute("class", "value-label");
-    t2.textContent = `(${fmtM(m.median)})`;
-    name.append(t1, t2);
+    name.textContent = o.owner;
+    // median value just below the bar, centered on the median position
+    const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    val.setAttribute("class", "value-label");
+    val.setAttribute("x", Math.max(x(m.median), LEFT2 + 14));
+    val.setAttribute("y", yMid + BARH / 2 + 11);
+    val.setAttribute("text-anchor", "middle");
+    val.textContent = fmtM(m.median);
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     hit.setAttribute("x", 0); hit.setAttribute("y", yMid - ROWH / 2);
     hit.setAttribute("width", W); hit.setAttribute("height", ROWH);
@@ -376,7 +377,7 @@ function render() {
     hit.addEventListener("mousemove", ev => showTip(o, ev));
     hit.addEventListener("mouseleave", hideTip);
     hit.addEventListener("click", ev => showTip(o, ev));
-    g.append(name, hit);
+    g.append(name, val, hit);
     svg.appendChild(g);
   });
   document.getElementById("mode-note").textContent = MODES[mode].note;
