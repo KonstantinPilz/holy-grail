@@ -360,9 +360,22 @@ function render() {
     }
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
-    name.setAttribute("x", LEFT2 - 8); name.setAttribute("y", yMid + 4);
+    name.setAttribute("x", LEFT2 - 8);
     name.setAttribute("text-anchor", "end");
-    name.textContent = o.owner;
+    const nlines = wrapLabel(o.owner, 15);
+    if (nlines.length === 1) {
+      name.setAttribute("y", yMid + 4);
+      name.textContent = nlines[0];
+    } else {
+      name.setAttribute("y", yMid - 2);
+      nlines.forEach((ln, k) => {
+        const ts = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        ts.setAttribute("x", LEFT2 - 8);
+        if (k) ts.setAttribute("dy", "13");
+        ts.textContent = ln;
+        name.appendChild(ts);
+      });
+    }
     // median value just below the bar, centered on the median position
     const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
     val.setAttribute("class", "value-label");
@@ -505,6 +518,20 @@ const LABS_MODES = {
 };
 const labsVal = l => l.modes ? l.modes[labsMode] : { median: l.median, p10: l.p10, p90: l.p90 };
 
+// Split a long label into at most two lines at the space that best balances
+// them (earliest such split wins ties, so "Meta / Superintelligence Labs").
+function wrapLabel(text, maxChars) {
+  if (text.length <= maxChars || !text.includes(" ")) return [text];
+  let best = null;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== " ") continue;
+    const a = text.slice(0, i), b = text.slice(i + 1);
+    const score = Math.max(a.length, b.length);
+    if (best === null || score < best.score) best = { score, lines: [a, b] };
+  }
+  return best.lines;
+}
+
 function labsEntries() {
   const out = [...labsPayload.labs.map(l => ({ ...l, cn: true })),
                ...(labsPayload.frontier || [])];
@@ -530,7 +557,7 @@ function renderLabs() {
   const el = document.getElementById("labs-chart");
   const labs = labsEntries();
   const W = Math.min(el.clientWidth || 628, 660);
-  const ROWH = 40, BARH = 18, LEFTL = 178, RIGHTL = 12, TOPL = 24, BOTL = 6;
+  const ROWH = 40, BARH = 18, LEFTL = 142, RIGHTL = 12, TOPL = 24, BOTL = 6;
   const H = TOPL + labs.length * ROWH + BOTL;
   const plotW = W - LEFTL - RIGHTL;
   const fac = l => l.median ? labsVal(l).median / l.median : 1;
@@ -599,9 +626,22 @@ function renderLabs() {
     }
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
-    name.setAttribute("x", LEFTL - 8); name.setAttribute("y", yMid + 4);
+    name.setAttribute("x", LEFTL - 8);
     name.setAttribute("text-anchor", "end");
-    name.textContent = l.name;
+    const lines = wrapLabel(l.name, 15);
+    if (lines.length === 1) {
+      name.setAttribute("y", yMid + 4);
+      name.textContent = lines[0];
+    } else {
+      name.setAttribute("y", yMid - 2);
+      lines.forEach((ln, k) => {
+        const ts = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        ts.setAttribute("x", LEFTL - 8);
+        if (k) ts.setAttribute("dy", "13");
+        ts.textContent = ln;
+        name.appendChild(ts);
+      });
+    }
     const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
     val.setAttribute("class", "value-label");
     val.setAttribute("x", Math.max(x(m.median), LEFTL + 14));
