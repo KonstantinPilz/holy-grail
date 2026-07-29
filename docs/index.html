@@ -530,7 +530,7 @@ function renderLabs() {
   const el = document.getElementById("labs-chart");
   const labs = labsEntries();
   const W = Math.min(el.clientWidth || 628, 660);
-  const ROWH = 40, BARH = 18, LEFTL = 104, RIGHTL = 12, TOPL = 24, BOTL = 6;
+  const ROWH = 40, BARH = 18, LEFTL = 178, RIGHTL = 12, TOPL = 24, BOTL = 6;
   const H = TOPL + labs.length * ROWH + BOTL;
   const plotW = W - LEFTL - RIGHTL;
   const fac = l => l.median ? labsVal(l).median / l.median : 1;
