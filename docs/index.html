@@ -584,7 +584,7 @@ function renderLabs() {
     val.setAttribute("class", "value-label");
     val.setAttribute("x", cx); val.setAttribute("y", H - 7);
     val.setAttribute("text-anchor", "middle");
-    val.textContent = `(${labsFmt(m.median)})`;
+    val.textContent = `(${fmtM(m.median)})`;
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     hit.setAttribute("x", cx - slotW / 2); hit.setAttribute("y", TOPV);
     hit.setAttribute("width", slotW); hit.setAttribute("height", plotH);
