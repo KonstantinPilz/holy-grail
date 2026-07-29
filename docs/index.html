@@ -215,7 +215,7 @@
     </div>
     <div id="labs-body" style="display:none">
       <p class="mode-note" id="labs-mode-note"></p>
-      <p id="labs-legend" style="color:var(--text-2);font-size:12px;margin:6px 0 0;line-height:1.5"><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--bar)"></span>US frontier labs (Epoch, preview data)
+      <p id="labs-legend" style="color:var(--text-2);font-size:12px;margin:6px 0 0;line-height:1.5"><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--bar)"></span>US developers (Epoch)
       <span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px;background:var(--bar-cn)"></span>Chinese labs (internal model)</p>
       <div id="labs-chart"></div>
       <p class="fine" id="labs-fine"></p>
@@ -505,105 +505,139 @@ const LABS_MODES = {
 };
 const labsVal = l => l.modes ? l.modes[labsMode] : { median: l.median, p10: l.p10, p90: l.p90 };
 
+function labsEntries() {
+  const out = [...labsPayload.labs.map(l => ({ ...l, cn: true })),
+               ...(labsPayload.frontier || [])];
+  // xAI develops on the fleet it owns, so its owner row transfers directly
+  // (assumption: all xAI-owned compute serves xAI itself). Epoch publishes a
+  // point estimate only, hence no distribution.
+  const x = DATA.owners.find(o => o.owner === "xAI");
+  if (x) {
+    out.push({
+      name: "xAI", point: true,
+      modes: {fp8: {median: x.modes.train_fp8.median},
+              fp4: {median: x.modes.train_fp4.median},
+              bw: {median: x.modes.inference.median}},
+      median: x.modes.train_fp8.median,
+      xai_note: "Owner fleet from Epoch's chip-owners data, assumed fully available to xAI itself. Point estimate — Epoch publishes no interval.",
+    });
+  }
+  return out.sort((a, b) => labsVal(b).median - labsVal(a).median);
+}
+
 function renderLabs() {
   if (!labsPayload) return;
   const el = document.getElementById("labs-chart");
-  const labs = [...labsPayload.labs.map(l => ({ ...l, cn: true })),
-                ...(labsPayload.frontier || [])]
-    .sort((a, b) => labsVal(b).median - labsVal(a).median);
+  const labs = labsEntries();
   const W = Math.min(el.clientWidth || 628, 660);
-  const H = 354, TOPV = 26, BOT = 42, LEFTV = 52, RIGHTV = 10;
-  const plotW = W - LEFTV - RIGHTV, plotH = H - TOPV - BOT;
+  const ROWH = 40, BARH = 18, LEFTL = 104, RIGHTL = 12, TOPL = 24, BOTL = 6;
+  const H = TOPL + labs.length * ROWH + BOTL;
+  const plotW = W - LEFTL - RIGHTL;
   const fac = l => l.median ? labsVal(l).median / l.median : 1;
-  const maxY = Math.max(...labs.map(l => (l.dist ? l.dist.x1 : labsVal(l).p90 * 1.15) * fac(l))) * 1.03;
-  const y = v => TOPV + plotH - (v / maxY) * plotH;
+  const maxX = Math.max(...labs.map(l => {
+    const m = labsVal(l);
+    return l.dist ? l.dist.x1 * fac(l) : (m.p90 ? m.p90 * 1.1 : m.median * 1.1);
+  })) * 1.02;
+  const x = v => LEFTL + (v / maxX) * plotW;
   el.innerHTML = "";
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("width", "100%");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("height", H);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Distributions of Chinese AI developers' compute in GB300 equivalents");
+  svg.setAttribute("aria-label", "AI developer compute access in GB300 equivalents; bar intensity shows the probability distribution");
   el.appendChild(svg);
-  const step = niceStep(maxY);
-  for (let v = 0; v <= maxY; v += step) {
+  const step = niceStep(maxX);
+  for (let v = 0; v <= maxX; v += step) {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.setAttribute("class", v === 0 ? "zero-line" : "grid-line");
-    line.setAttribute("x1", LEFTV); line.setAttribute("x2", W - RIGHTV);
-    line.setAttribute("y1", y(v)); line.setAttribute("y2", y(v));
+    line.setAttribute("x1", x(v)); line.setAttribute("x2", x(v));
+    line.setAttribute("y1", TOPL - 4); line.setAttribute("y2", H - BOTL);
     svg.appendChild(line);
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("class", "axis-label");
-    t.setAttribute("x", LEFTV - 6); t.setAttribute("y", y(v) + 3.5);
-    t.setAttribute("text-anchor", "end");
-    t.textContent = v === 0 ? "0" : (v / 1000) + "k";
+    const isLast = v + step > maxX;
+    t.setAttribute("class", isLast ? "axis-unit" : "axis-label");
+    t.setAttribute("x", isLast ? Math.min(x(v) + 30, W) : x(v));
+    t.setAttribute("y", TOPL - 9);
+    t.setAttribute("text-anchor", v === 0 ? "start" : isLast ? "end" : "middle");
+    t.textContent = v === 0 ? "0" : fmtTick(v) + (isLast ? " GB300e" : "");
     svg.appendChild(t);
   }
-  const unit = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  unit.setAttribute("class", "axis-unit");
-  unit.setAttribute("x", W - RIGHTV); unit.setAttribute("y", 12);
-  unit.setAttribute("text-anchor", "end");
-  unit.textContent = "GB300e";
-  svg.appendChild(unit);
-  const slotW = plotW / labs.length;
-  const halfMax = Math.min(46, slotW * 0.32);
+  const rootStyle = getComputedStyle(document.documentElement);
   labs.forEach((l, i) => {
-    const cx = LEFTV + i * slotW + slotW / 2;
+    const yMid = TOPL + i * ROWH + ROWH / 2;
     const f = fac(l), m = labsVal(l);
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    const barHW = Math.min(30, slotW * 0.21);
+    const color = rootStyle.getPropertyValue(l.cn ? "--bar-cn" : "--bar").trim();
     if (l.dist) {
-      const { x0, x1, d } = l.dist;
-      const yTop = y(x1 * f), yBot = y(x0 * f);
+      const xL = x(l.dist.x0 * f), xR = x(l.dist.x1 * f);
       const gradId = `lg-${l.name.replace(/[^a-z]/gi, "")}`;
       const grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
       grad.setAttribute("id", gradId);
       grad.setAttribute("gradientUnits", "userSpaceOnUse");
-      grad.setAttribute("x1", 0); grad.setAttribute("x2", 0);
-      grad.setAttribute("y1", yTop); grad.setAttribute("y2", yBot);
-      const barColor = getComputedStyle(document.documentElement).getPropertyValue(l.cn ? "--bar-cn" : "--bar").trim();
-      for (let k = 80; k >= 0; k -= 2) {   // top (x1) -> bottom (x0)
+      grad.setAttribute("x1", xL); grad.setAttribute("x2", xR);
+      grad.setAttribute("y1", 0); grad.setAttribute("y2", 0);
+      for (let k = 0; k <= 80; k += 2) {
         const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
-        stop.setAttribute("offset", ((80 - k) / 80).toFixed(3));
-        stop.setAttribute("stop-color", barColor);
-        stop.setAttribute("stop-opacity", Math.pow(d[k], 0.75).toFixed(3));
+        stop.setAttribute("offset", (k / 80).toFixed(3));
+        stop.setAttribute("stop-color", color);
+        stop.setAttribute("stop-opacity", Math.pow(l.dist.d[k], 0.6).toFixed(3));
         grad.appendChild(stop);
       }
       svg.appendChild(grad);
       const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      bar.setAttribute("x", cx - barHW); bar.setAttribute("width", barHW * 2);
-      bar.setAttribute("y", yTop); bar.setAttribute("height", Math.max(0, yBot - yTop));
+      bar.setAttribute("x", xL); bar.setAttribute("width", Math.max(2, xR - xL));
+      bar.setAttribute("y", yMid - BARH / 2); bar.setAttribute("height", BARH);
       bar.setAttribute("fill", `url(#${gradId})`);
       g.appendChild(bar);
+    } else {
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("x1", x(m.median)); tick.setAttribute("x2", x(m.median));
+      tick.setAttribute("y1", yMid - BARH / 2); tick.setAttribute("y2", yMid + BARH / 2);
+      tick.setAttribute("stroke", color); tick.setAttribute("stroke-width", "3");
+      g.appendChild(tick);
     }
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label");
-    name.setAttribute("x", cx); name.setAttribute("y", H - 22);
-    name.setAttribute("text-anchor", "middle");
+    name.setAttribute("x", LEFTL - 8); name.setAttribute("y", yMid + 4);
+    name.setAttribute("text-anchor", "end");
     name.textContent = l.name;
     const val = document.createElementNS("http://www.w3.org/2000/svg", "text");
     val.setAttribute("class", "value-label");
-    val.setAttribute("x", cx); val.setAttribute("y", H - 7);
+    val.setAttribute("x", Math.max(x(m.median), LEFTL + 14));
+    val.setAttribute("y", yMid + BARH / 2 + 11);
     val.setAttribute("text-anchor", "middle");
-    val.textContent = `(${fmtM(m.median)})`;
+    val.textContent = fmtM(m.median);
     const hit = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    hit.setAttribute("x", cx - slotW / 2); hit.setAttribute("y", TOPV);
-    hit.setAttribute("width", slotW); hit.setAttribute("height", plotH);
+    hit.setAttribute("x", 0); hit.setAttribute("y", yMid - ROWH / 2);
+    hit.setAttribute("width", W); hit.setAttribute("height", ROWH);
     hit.setAttribute("fill", "transparent");
     hit.addEventListener("mousemove", ev => showLabsTip(l, ev));
     hit.addEventListener("mouseleave", hideTip);
     hit.addEventListener("click", ev => showLabsTip(l, ev));
-    g.append(val, name, hit);
+    g.append(name, val, hit);
     svg.appendChild(g);
   });
   document.getElementById("labs-mode-note").textContent = LABS_MODES[labsMode];
   document.getElementById("labs-fine").innerHTML =
-    `US labs: Epoch AI Frontier AI Compute Hub (preview). Chinese labs:
-     <a href="${labsPayload.sheet_url}">internal Monte Carlo model</a> (synced ${labsPayload.synced}).
-     Color = probability density; medians in brackets. Method details in the methods doc.`;
+    `US labs: Epoch AI Frontier AI Compute Hub (preview); xAI from Epoch's chip-owners data, assumed fully self-served.
+     Chinese labs: <a href="${labsPayload.sheet_url}">internal Monte Carlo model</a> (synced ${labsPayload.synced}).
+     Color = probability density. Method details in the methods doc.`;
 }
 
 function showLabsTip(l, ev) {
+  if (l.xai_note) {
+    const m = labsVal(l);
+    tooltipEl.innerHTML = `<h3>xAI — ${fmtM(m.median)} GB300e</h3>
+      <p class="tt-ci">${l.xai_note}</p>`;
+    tooltipEl.style.display = "block";
+    const tw = tooltipEl.offsetWidth, th = tooltipEl.offsetHeight;
+    let tx = ev.clientX + 12, ty = ev.clientY + 10;
+    if (tx + tw > window.innerWidth - 8) tx = ev.clientX - tw - 12;
+    if (ty + th > window.innerHeight - 8) ty = ev.clientY - th - 10;
+    tooltipEl.style.left = tx + "px"; tooltipEl.style.top = ty + "px";
+    return;
+  }
   if (l.mix_note) {   // US frontier lab from the Epoch preview
     const m = labsVal(l);
     tooltipEl.innerHTML = `<h3>${l.name} — ${fmtM(m.median)} GB300e</h3>
