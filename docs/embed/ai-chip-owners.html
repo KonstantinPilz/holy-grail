@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>US AI chip owners, end of 2025 — embeddable figure</title>
+<style>html,body{margin:0;padding:0;background:transparent}</style>
+</head>
+<body>
+<style>
+.hg-fig {
+  --hg-bar: #1d81a2; --hg-text: #333; --hg-text2: #666; --hg-text3: #888;
+  --hg-grid: #e6e6e6; --hg-bg: #fff; --hg-border: #ddd;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--hg-text); background: var(--hg-bg);
+  max-width: 680px; margin: 0 auto; padding: 4px 2px 2px; box-sizing: border-box;
+}
+@media (prefers-color-scheme: dark) {
+  .hg-fig { --hg-bar: #2e94bd; --hg-text: #e0e0e0; --hg-text2: #aaa; --hg-text3: #888;
+            --hg-grid: #3a3a3a; --hg-bg: #1f1f1f; --hg-border: #444; }
+}
+.hg-fig[data-theme="light"] { --hg-bar: #1d81a2; --hg-text: #333; --hg-text2: #666;
+  --hg-text3: #888; --hg-grid: #e6e6e6; --hg-bg: #fff; --hg-border: #ddd; }
+.hg-fig[data-theme="dark"] { --hg-bar: #2e94bd; --hg-text: #e0e0e0; --hg-text2: #aaa;
+  --hg-text3: #888; --hg-grid: #3a3a3a; --hg-bg: #1f1f1f; --hg-border: #444; }
+.hg-fig * { box-sizing: border-box; }
+.hg-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.hg-h { font-size: 19px; font-weight: 700; margin: 0 0 4px; line-height: 1.25; }
+.hg-sub { font-size: 13px; color: var(--hg-text2); margin: 0; line-height: 1.45; max-width: 460px; }
+.hg-select { font: inherit; font-size: 13px; padding: 4px 8px; border: 1px solid var(--hg-border);
+  border-radius: 6px; background: var(--hg-bg); color: var(--hg-text); }
+.hg-note { color: var(--hg-text2); font-size: 12.5px; margin: 10px 0 2px; line-height: 1.45; min-height: 1.3em; }
+.hg-fine { color: var(--hg-text3); font-size: 11.5px; line-height: 1.5; margin: 8px 0 0; }
+.hg-fine a { color: inherit; }
+.hg-fig svg { display: block; width: 100%; height: auto; overflow: visible; }
+.hg-grid-line { stroke: var(--hg-grid); stroke-width: 1; }
+.hg-zero-line { stroke: var(--hg-text3); stroke-width: 1; }
+.hg-axis { fill: var(--hg-text3); font-size: 10.5px; }
+.hg-unit { fill: var(--hg-text2); font-size: 11.5px; font-weight: 700; }
+.hg-name { fill: var(--hg-text); font-size: 12.5px; }
+.hg-val { fill: var(--hg-text); font-size: 11.5px; font-weight: 700; }
+.hg-tip { position: fixed; display: none; z-index: 2147483000; pointer-events: none;
+  background: var(--hg-bg); color: var(--hg-text); border: 1px solid var(--hg-border);
+  border-radius: 6px; padding: 8px 10px; font-size: 12px; line-height: 1.45;
+  box-shadow: 0 4px 14px rgba(0,0,0,.13); max-width: 300px; }
+.hg-tip h4 { margin: 0 0 2px; font-size: 12.5px; }
+.hg-tip .hg-ci { color: var(--hg-text2); margin: 0 0 6px; font-size: 11.5px; }
+.hg-tip table { border-collapse: collapse; width: 100%; }
+.hg-tip td { padding: 1px 0; }
+.hg-tip td:nth-child(2), .hg-tip td:nth-child(3) { text-align: right; padding-left: 10px; white-space: nowrap; }
+.hg-tip .hg-tot td { border-top: 1px solid var(--hg-border); font-weight: 700; padding-top: 3px; }
+</style>
+
+<div class="hg-fig" id="hg-fig" data-title="US AI chip owners, end of 2025">
+  <div class="hg-head">
+    <div>
+      <h3 class="hg-h">US AI chip owners, end of 2025</h3>
+      <p class="hg-sub">Cumulative AI-chip installed base in <strong>GB300-equivalents (GB300e)</strong> — color intensity shows the probability distribution</p>
+    </div>
+    <select class="hg-select" id="hg-mode" aria-label="Conversion metric">
+      <option value="train_fp8" selected>FP8 FLOP/s</option>
+      <option value="train_fp4">FP4 FLOP/s</option>
+      <option value="inference">Memory bandwidth</option>
+    </select>
+  </div>
+  <p class="hg-note" id="hg-note"></p>
+  <div id="hg-chart"></div>
+  <div class="hg-tip" id="hg-tip" aria-hidden="true"></div>
+  <p class="hg-fine">Source: <a href="https://epoch.ai/data/ai-chip-owners">Epoch AI, Data on AI Chip Owners</a>
+    (CC&nbsp;BY&nbsp;4.0, pulled 2026-07-20), converted to GB300-equivalents. xAI: point estimate only.
+    Hover or tap a bar for the chip-level breakdown.</p>
+</div>
+
+<script>
+(function () {
+  var DATA = {"pulled":"2026-07-20","eoy":"2025-12-31","gb300":{"fp8_pflops":5.0,"fp4_pflops":15.0,"bw_tbs":8.0},"n_mc":20000,"owners":[{"owner":"Microsoft","has_ci":true,"modes":{"train_fp8":{"median":1334233.0356,"lo":1100380.1884915424,"hi":1632454.723270459,"dist":{"x0":764476,"x1":2118980,"d":[0.003,0.005,0.007,0.01,0.014,0.02,0.029,0.042,0.058,0.078,0.101,0.129,0.161,0.197,0.236,0.28,0.328,0.382,0.441,0.502,0.561,0.617,0.67,0.722,0.775,0.829,0.879,0.924,0.96,0.985,0.997,1.0,0.999,0.996,0.991,0.979,0.958,0.927,0.891,0.854,0.817,0.78,0.743,0.706,0.666,0.624,0.578,0.532,0.489,0.45,0.414,0.381,0.349,0.316,0.283,0.252,0.223,0.199,0.178,0.16,0.143,0.128,0.112,0.096,0.083,0.072,0.064,0.057,0.05,0.044,0.038,0.032,0.028,0.024,0.021,0.018,0.016,0.014,0.012,0.011,0.009]}},"train_fp4":{"median":822972.8486666667,"lo":677834.3501008134,"hi":1007125.9759845004,"dist":{"x0":469406,"x1":1308500,"d":[0.003,0.004,0.006,0.009,0.014,0.021,0.031,0.044,0.059,0.078,0.101,0.128,0.16,0.196,0.237,0.281,0.328,0.38,0.435,0.494,0.553,0.61,0.663,0.715,0.767,0.82,0.87,0.913,0.949,0.975,0.992,1.0,1.0,0.995,0.986,0.973,0.955,0.929,0.895,0.857,0.815,0.773,0.733,0.695,0.658,0.62,0.579,0.537,0.494,0.453,0.414,0.378,0.343,0.309,0.278,0.249,0.224,0.201,0.18,0.16,0.142,0.126,0.111,0.099,0.087,0.076,0.065,0.056,0.048,0.041,0.036,0.031,0.027,0.024,0.021,0.019,0.017,0.015,0.013,0.011,0.009]}},"inference":{"median":1525712.81575,"lo":1255958.7575707454,"hi":1871272.8301024754,"dist":{"x0":867780,"x1":2444711,"d":[0.003,0.005,0.007,0.01,0.015,0.021,0.029,0.042,0.058,0.079,0.103,0.131,0.164,0.201,0.241,0.286,0.336,0.39,0.45,0.511,0.571,0.628,0.683,0.737,0.79,0.841,0.889,0.93,0.962,0.984,0.995,0.999,1.0,0.997,0.988,0.969,0.943,0.911,0.877,0.842,0.806,0.77,0.732,0.694,0.653,0.61,0.564,0.519,0.476,0.437,0.4,0.366,0.333,0.301,0.271,0.241,0.214,0.19,0.169,0.152,0.137,0.123,0.108,0.092,0.079,0.069,0.061,0.055,0.048,0.043,0.037,0.032,0.027,0.022,0.018,0.015,0.014,0.012,0.012,0.011,0.009]}}},"chips":{"B200":{"units":459481.0,"train_fp8":459481.0,"train_fp4":306320.6666666666,"inference":459481.0},"H100/H200":{"units":1093460.0,"train_fp8":432791.468,"train_fp4":144263.82266666667,"inference":556981.1875},"B300":{"units":323881.0,"train_fp8":323881.0,"train_fp4":323881.0,"inference":323881.0},"A100":{"units":227034.0,"train_fp8":14166.9216,"train_fp4":4722.3072,"inference":57865.29075000001},"Instinct MI355X":{"units":11344.0,"train_fp8":11418.8704,"train_fp4":7612.580266666667,"inference":11344.0},"Instinct MI325X":{"units":21401.0,"train_fp8":11192.29498,"train_fp4":3730.764993333333,"inference":16050.75},"Instinct MI300X":{"units":124819.0,"train_fp8":65277.84062,"train_fp4":21759.280206666666,"inference":82692.5875},"Instinct MI350X":{"units":17417.0,"train_fp8":16023.640000000001,"train_fp4":10682.426666666666,"inference":17417.0}}},{"owner":"Google","has_ci":true,"modes":{"train_fp8":{"median":1986641.4082000002,"lo":1633521.2017696924,"hi":2357547.390287969,"dist":{"x0":1159564,"x1":2966576,"d":[0.004,0.005,0.007,0.011,0.017,0.025,0.034,0.045,0.059,0.075,0.094,0.116,0.142,0.171,0.204,0.241,0.28,0.322,0.366,0.411,0.457,0.503,0.55,0.599,0.651,0.702,0.751,0.797,0.839,0.88,0.919,0.952,0.978,0.994,1.0,0.998,0.992,0.984,0.977,0.969,0.957,0.939,0.913,0.878,0.835,0.789,0.741,0.695,0.65,0.607,0.564,0.521,0.479,0.436,0.394,0.353,0.315,0.281,0.249,0.218,0.19,0.164,0.141,0.122,0.105,0.089,0.075,0.062,0.052,0.044,0.039,0.035,0.033,0.031,0.027,0.024,0.02,0.017,0.014,0.012,0.01]}},"train_fp4":{"median":806339.1360666667,"lo":664185.9946932105,"hi":960950.929943257,"dist":{"x0":476209,"x1":1215428,"d":[0.004,0.005,0.008,0.013,0.019,0.028,0.039,0.053,0.068,0.086,0.106,0.129,0.156,0.188,0.224,0.262,0.304,0.349,0.396,0.445,0.494,0.541,0.589,0.639,0.691,0.744,0.796,0.845,0.89,0.928,0.958,0.979,0.993,1.0,0.999,0.994,0.986,0.977,0.967,0.953,0.933,0.905,0.87,0.83,0.787,0.741,0.696,0.651,0.608,0.565,0.522,0.48,0.438,0.398,0.36,0.325,0.291,0.259,0.228,0.199,0.173,0.149,0.128,0.11,0.094,0.079,0.066,0.056,0.048,0.042,0.038,0.034,0.031,0.028,0.025,0.022,0.019,0.016,0.013,0.011,0.009]}},"inference":{"median":1842579.383375,"lo":1514858.4546854869,"hi":2199411.9992897194,"dist":{"x0":1078005,"x1":2788754,"d":[0.004,0.005,0.008,0.013,0.02,0.029,0.039,0.052,0.066,0.084,0.105,0.13,0.158,0.189,0.224,0.262,0.303,0.347,0.394,0.443,0.494,0.544,0.591,0.637,0.684,0.731,0.779,0.826,0.871,0.913,0.951,0.98,0.997,1.0,0.993,0.984,0.976,0.97,0.964,0.954,0.934,0.904,0.865,0.821,0.777,0.734,0.693,0.652,0.611,0.569,0.527,0.483,0.44,0.399,0.36,0.325,0.292,0.259,0.228,0.198,0.171,0.148,0.129,0.112,0.096,0.082,0.069,0.058,0.05,0.043,0.037,0.033,0.03,0.027,0.024,0.021,0.018,0.015,0.012,0.01,0.009]}}},"chips":{"B200":{"units":184848.0,"train_fp8":184848.0,"train_fp4":123232.0,"inference":184848.0},"H100/H200":{"units":423372.0,"train_fp8":167570.6376,"train_fp4":55856.8792,"inference":215655.11250000002},"A100":{"units":86455.0,"train_fp8":5394.7919999999995,"train_fp4":1798.264,"inference":22035.218125000003},"B300":{"units":123764.0,"train_fp8":123764.0,"train_fp4":123764.0,"inference":123764.0},"TPU v4i":{"units":30031.0,"train_fp8":828.8556,"train_fp4":276.2852,"inference":2304.87925},"TPU v4":{"units":261998.0,"train_fp8":14409.89,"train_fp4":4803.296666666667,"inference":39299.7},"TPU v5e":{"units":2391837.0,"train_fp8":187998.38820000002,"train_fp4":62666.129400000005,"inference":244864.31287499997},"TPU v5p":{"units":672187.0,"train_fp8":123413.5332,"train_fp4":41137.8444,"inference":232324.63187500002},"TPU v6e":{"units":2469009.0,"train_fp8":906620.1048000001,"train_fp4":302206.7016,"inference":506146.845},"TPU v7":{"units":294531.0,"train_fp8":271793.2068,"train_fp4":90597.7356,"inference":271336.68375}}},{"owner":"Meta","has_ci":true,"modes":{"train_fp8":{"median":901409.16648,"lo":740466.6855884738,"hi":1105900.8453370947,"dist":{"x0":517732,"x1":1461318,"d":[0.004,0.006,0.009,0.014,0.02,0.029,0.041,0.057,0.076,0.098,0.125,0.156,0.192,0.232,0.275,0.322,0.373,0.427,0.483,0.54,0.6,0.661,0.724,0.787,0.845,0.894,0.933,0.961,0.981,0.993,0.999,1.0,0.994,0.982,0.963,0.94,0.914,0.885,0.853,0.817,0.777,0.734,0.69,0.648,0.608,0.568,0.526,0.482,0.438,0.395,0.357,0.322,0.292,0.265,0.239,0.215,0.192,0.17,0.151,0.133,0.116,0.101,0.088,0.076,0.067,0.058,0.051,0.045,0.039,0.035,0.031,0.027,0.023,0.02,0.017,0.015,0.013,0.012,0.011,0.01,0.009]}},"train_fp4":{"median":543367.4376933333,"lo":445456.5195482786,"hi":669290.9499104213,"dist":{"x0":302929,"x1":883159,"d":[0.003,0.004,0.007,0.01,0.014,0.02,0.029,0.04,0.055,0.074,0.097,0.125,0.157,0.195,0.237,0.284,0.336,0.39,0.445,0.5,0.556,0.615,0.68,0.746,0.81,0.865,0.911,0.947,0.975,0.992,0.999,1.0,0.996,0.989,0.976,0.957,0.932,0.902,0.869,0.835,0.799,0.76,0.719,0.674,0.627,0.579,0.53,0.483,0.441,0.403,0.371,0.342,0.314,0.286,0.257,0.229,0.202,0.178,0.158,0.14,0.124,0.109,0.095,0.082,0.072,0.063,0.054,0.047,0.042,0.037,0.033,0.029,0.025,0.022,0.019,0.016,0.014,0.011,0.009,0.008,0.007]}},"inference":{"median":1032298.060375,"lo":846489.2383290316,"hi":1267898.5281821964,"dist":{"x0":586509,"x1":1684181,"d":[0.003,0.005,0.008,0.012,0.019,0.027,0.039,0.055,0.073,0.096,0.122,0.153,0.188,0.228,0.271,0.318,0.369,0.423,0.48,0.538,0.598,0.659,0.722,0.785,0.843,0.894,0.934,0.963,0.983,0.995,1.0,1.0,0.994,0.981,0.962,0.939,0.912,0.882,0.848,0.812,0.772,0.729,0.685,0.643,0.604,0.567,0.528,0.486,0.441,0.396,0.353,0.314,0.281,0.255,0.231,0.21,0.189,0.169,0.149,0.13,0.112,0.097,0.085,0.075,0.066,0.058,0.051,0.044,0.039,0.034,0.03,0.026,0.023,0.019,0.016,0.013,0.012,0.011,0.01,0.01,0.009]}}},"chips":{"A100":{"units":118947.0,"train_fp8":7422.292799999999,"train_fp4":2474.0976,"inference":30316.616625000002},"H100/H200":{"units":594470.0,"train_fp8":235291.226,"train_fp4":78430.40866666667,"inference":302808.15625},"B200":{"units":278492.0,"train_fp8":278492.0,"train_fp4":185661.3333333333,"inference":278492.0},"B300":{"units":199616.0,"train_fp8":199616.0,"train_fp4":199616.0,"inference":199616.0},"Instinct MI325X":{"units":39455.0,"train_fp8":20634.1759,"train_fp4":6878.058633333333,"inference":29591.25},"Instinct MI350X":{"units":32314.0,"train_fp8":29728.88,"train_fp4":19819.25333333333,"inference":32314.0},"Instinct MI300X":{"units":208391.0,"train_fp8":108984.32518,"train_fp4":36328.10839333333,"inference":138059.0375},"Instinct MI355X":{"units":21101.0,"train_fp8":21240.2666,"train_fp4":14160.177733333334,"inference":21101.0}}},{"owner":"Amazon","has_ci":true,"modes":{"train_fp8":{"median":938504.5471999999,"lo":811091.8959153449,"hi":1096177.1087976922,"dist":{"x0":636405,"x1":1356906,"d":[0.002,0.005,0.008,0.013,0.02,0.028,0.039,0.053,0.07,0.09,0.113,0.141,0.173,0.211,0.255,0.302,0.352,0.404,0.458,0.514,0.57,0.627,0.682,0.735,0.784,0.829,0.868,0.902,0.933,0.961,0.984,0.998,1.0,0.99,0.972,0.952,0.932,0.909,0.882,0.848,0.81,0.77,0.732,0.694,0.654,0.612,0.567,0.521,0.477,0.435,0.397,0.363,0.333,0.303,0.274,0.245,0.219,0.194,0.173,0.154,0.138,0.123,0.109,0.095,0.081,0.068,0.058,0.049,0.042,0.037,0.033,0.03,0.027,0.025,0.022,0.019,0.016,0.013,0.011,0.009,0.007]}},"train_fp4":{"median":487045.1824,"lo":414024.9124945234,"hi":579109.7031905568,"dist":{"x0":314693,"x1":732993,"d":[0.003,0.005,0.009,0.014,0.02,0.03,0.041,0.056,0.074,0.096,0.122,0.152,0.187,0.227,0.272,0.321,0.374,0.429,0.486,0.544,0.602,0.659,0.712,0.763,0.809,0.852,0.89,0.923,0.953,0.978,0.994,1.0,0.994,0.978,0.955,0.929,0.902,0.873,0.842,0.81,0.774,0.736,0.697,0.657,0.618,0.578,0.539,0.498,0.456,0.415,0.376,0.341,0.309,0.28,0.254,0.229,0.206,0.187,0.169,0.152,0.134,0.118,0.102,0.087,0.075,0.064,0.055,0.047,0.04,0.035,0.031,0.028,0.025,0.023,0.021,0.018,0.016,0.013,0.01,0.008,0.007]}},"inference":{"median":1179087.5725,"lo":1017473.5783393403,"hi":1383269.086150514,"dist":{"x0":799130,"x1":1734982,"d":[0.003,0.005,0.009,0.014,0.021,0.031,0.044,0.059,0.078,0.1,0.126,0.157,0.195,0.239,0.287,0.338,0.391,0.446,0.503,0.56,0.618,0.675,0.732,0.785,0.834,0.876,0.911,0.942,0.967,0.987,0.998,1.0,0.992,0.977,0.957,0.933,0.907,0.875,0.839,0.802,0.763,0.725,0.686,0.646,0.603,0.558,0.512,0.467,0.424,0.386,0.351,0.319,0.289,0.26,0.234,0.21,0.188,0.169,0.152,0.137,0.122,0.107,0.092,0.079,0.067,0.058,0.051,0.044,0.038,0.034,0.03,0.027,0.025,0.023,0.02,0.017,0.015,0.012,0.01,0.008,0.007]}}},"chips":{"B200":{"units":224373.0,"train_fp8":224373.0,"train_fp4":149582.0,"inference":224373.0},"B300":{"units":149129.0,"train_fp8":149129.0,"train_fp4":149129.0,"inference":149129.0},"H100/H200":{"units":451830.0,"train_fp8":178834.31399999998,"train_fp4":59611.43800000001,"inference":230150.90625},"A100":{"units":86410.0,"train_fp8":5391.9839999999995,"train_fp4":1797.328,"inference":22023.748750000002},"Trainium2":{"units":1400284.0,"train_fp8":363793.78319999995,"train_fp4":121264.5944,"inference":507602.95},"Trainium1":{"units":446907.0,"train_fp8":16982.466,"train_fp4":5660.822,"inference":45807.9675}}},{"owner":"Oracle","has_ci":true,"modes":{"train_fp8":{"median":450145.41512,"lo":360166.96884993685,"hi":568503.1671257,"dist":{"x0":235129,"x1":764677,"d":[0.004,0.006,0.009,0.013,0.02,0.029,0.04,0.055,0.073,0.094,0.12,0.151,0.19,0.236,0.288,0.344,0.401,0.458,0.516,0.577,0.64,0.703,0.763,0.817,0.864,0.906,0.942,0.97,0.988,0.998,1.0,0.996,0.985,0.97,0.952,0.931,0.91,0.888,0.86,0.827,0.789,0.747,0.705,0.662,0.617,0.572,0.527,0.486,0.447,0.41,0.376,0.343,0.312,0.283,0.253,0.225,0.198,0.174,0.155,0.139,0.125,0.112,0.101,0.092,0.082,0.073,0.064,0.055,0.047,0.04,0.033,0.028,0.024,0.021,0.019,0.017,0.016,0.014,0.012,0.01,0.008]}},"train_fp4":{"median":292327.44464,"lo":234367.6814951866,"hi":368394.39142492955,"dist":{"x0":153451,"x1":493393,"d":[0.003,0.005,0.009,0.013,0.019,0.027,0.037,0.051,0.068,0.089,0.115,0.146,0.182,0.225,0.274,0.328,0.385,0.443,0.503,0.564,0.628,0.692,0.752,0.807,0.856,0.899,0.935,0.963,0.984,0.996,1.0,0.995,0.983,0.967,0.949,0.93,0.909,0.886,0.858,0.823,0.783,0.741,0.699,0.658,0.618,0.577,0.536,0.497,0.46,0.425,0.39,0.353,0.318,0.285,0.255,0.227,0.203,0.181,0.162,0.145,0.13,0.115,0.102,0.09,0.079,0.069,0.061,0.055,0.049,0.043,0.038,0.033,0.029,0.025,0.022,0.02,0.017,0.014,0.011,0.009,0.007]}},"inference":{"median":498046.68200000003,"lo":396445.3949195728,"hi":631055.4942867706,"dist":{"x0":257922,"x1":853664,"d":[0.004,0.006,0.009,0.014,0.02,0.029,0.041,0.057,0.075,0.097,0.124,0.157,0.197,0.245,0.298,0.355,0.413,0.47,0.527,0.587,0.651,0.714,0.775,0.828,0.875,0.916,0.95,0.976,0.992,1.0,1.0,0.993,0.98,0.964,0.946,0.927,0.905,0.881,0.852,0.818,0.78,0.739,0.695,0.651,0.605,0.56,0.516,0.474,0.434,0.398,0.365,0.335,0.305,0.276,0.247,0.219,0.192,0.169,0.15,0.134,0.121,0.109,0.1,0.09,0.08,0.071,0.062,0.053,0.045,0.038,0.032,0.027,0.023,0.02,0.018,0.016,0.014,0.013,0.011,0.01,0.009]}}},"chips":{"B300":{"units":123322.0,"train_fp8":123322.0,"train_fp4":123322.0,"inference":123322.0},"A100":{"units":28904.0,"train_fp8":1803.6096,"train_fp4":601.2031999999999,"inference":7366.907},"H100/H200":{"units":284484.0,"train_fp8":112598.7672,"train_fp4":37532.9224,"inference":144909.0375},"B200":{"units":167998.0,"train_fp8":167998.0,"train_fp4":111998.66666666666,"inference":167998.0},"Instinct MI355X":{"units":5018.0,"train_fp8":5051.118799999999,"train_fp4":3367.4125333333336,"inference":5018.0},"Instinct MI325X":{"units":9621.0,"train_fp8":5031.59058,"train_fp4":1677.19686,"inference":7215.75},"Instinct MI350X":{"units":7765.0,"train_fp8":7143.8,"train_fp4":4762.533333333333,"inference":7765.0},"Instinct MI300X":{"units":52003.0,"train_fp8":27196.52894,"train_fp4":9065.509646666666,"inference":34451.987499999996}}},{"owner":"CoreWeave","has_ci":true,"modes":{"train_fp8":{"median":329042.8146,"lo":307584.55795549776,"hi":351360.41023839253,"dist":{"x0":274224,"x1":385812,"d":[0.004,0.005,0.006,0.008,0.01,0.014,0.019,0.025,0.032,0.041,0.051,0.064,0.079,0.098,0.119,0.142,0.166,0.192,0.221,0.254,0.293,0.337,0.384,0.435,0.487,0.541,0.594,0.644,0.691,0.735,0.776,0.815,0.852,0.886,0.917,0.945,0.966,0.981,0.991,0.997,1.0,0.995,0.979,0.951,0.914,0.874,0.833,0.791,0.748,0.704,0.659,0.611,0.563,0.514,0.467,0.424,0.385,0.347,0.312,0.278,0.247,0.218,0.192,0.168,0.144,0.123,0.105,0.091,0.08,0.07,0.06,0.05,0.041,0.033,0.028,0.024,0.021,0.018,0.015,0.012,0.009]}},"train_fp4":{"median":214935.9382,"lo":197297.52563826932,"hi":232494.74474420038,"dist":{"x0":170485,"x1":259806,"d":[0.004,0.005,0.006,0.008,0.011,0.015,0.02,0.026,0.033,0.041,0.051,0.064,0.08,0.097,0.118,0.14,0.164,0.191,0.22,0.253,0.29,0.331,0.376,0.425,0.476,0.527,0.575,0.619,0.66,0.699,0.736,0.774,0.812,0.851,0.887,0.918,0.943,0.962,0.978,0.992,1.0,0.999,0.987,0.964,0.933,0.897,0.857,0.817,0.776,0.734,0.688,0.639,0.588,0.537,0.487,0.44,0.398,0.358,0.322,0.289,0.258,0.229,0.201,0.176,0.151,0.129,0.109,0.092,0.079,0.069,0.06,0.052,0.044,0.037,0.031,0.025,0.021,0.018,0.015,0.012,0.01]}},"inference":{"median":363250.12812500005,"lo":341294.5556624533,"hi":386250.17506628955,"dist":{"x0":306905,"x1":421474,"d":[0.004,0.005,0.006,0.008,0.01,0.013,0.018,0.024,0.032,0.04,0.05,0.062,0.077,0.096,0.117,0.14,0.164,0.19,0.219,0.252,0.29,0.333,0.38,0.431,0.484,0.538,0.591,0.642,0.691,0.736,0.778,0.817,0.853,0.887,0.918,0.946,0.969,0.984,0.993,0.998,1.0,0.995,0.98,0.953,0.918,0.878,0.837,0.795,0.752,0.707,0.661,0.614,0.566,0.518,0.472,0.429,0.39,0.353,0.317,0.282,0.25,0.221,0.195,0.17,0.147,0.126,0.108,0.094,0.082,0.071,0.061,0.051,0.042,0.035,0.029,0.025,0.022,0.019,0.015,0.012,0.009]}}},"chips":{"B300":{"units":105932.0,"train_fp8":105932.0,"train_fp4":105932.0,"inference":105932.0},"B200":{"units":103901.0,"train_fp8":103901.0,"train_fp4":69267.33333333333,"inference":103901.0},"H100/H200":{"units":301187.0,"train_fp8":119209.8146,"train_fp4":39736.60486666667,"inference":153417.12812500002}}},{"owner":"xAI","has_ci":false,"modes":{"train_fp8":{"median":219160.0},"train_fp4":{"median":119720.0},"inference":{"median":241875.0}},"chips":{"B200":{"units":140000.0,"train_fp8":140000.0,"train_fp4":93333.33333333333,"inference":140000.0},"H100/H200":{"units":200000.0,"train_fp8":79160.0,"train_fp4":26386.666666666668,"inference":101875.0}}}]};
+  var root = document.getElementById("hg-fig");
+  var chartEl = document.getElementById("hg-chart");
+  var tipEl = document.getElementById("hg-tip");
+  var sel = document.getElementById("hg-mode");
+  var mode = "train_fp8";
+  var NS = "http://www.w3.org/2000/svg";
+
+  var NOTES = {
+    train_fp8: "Conversion: chip's dense FP8 FLOP/s ÷ GB300's " + DATA.gb300.fp8_pflops +
+      " PFLOP/s. Chips without FP8 use FP16/BF16; Google TPUs without FP8 use INT8.",
+    train_fp4: "Conversion: chip's dense FP4 FLOP/s ÷ GB300's " + DATA.gb300.fp4_pflops +
+      " PFLOP/s, falling back to the FP8 basis where FP4 is unsupported.",
+    inference: "Conversion: chip's memory bandwidth ÷ GB300's " + DATA.gb300.bw_tbs +
+      " TB/s — decode throughput is memory-bandwidth-bound."
+  };
+
+  function el(tag, attrs) {
+    var n = document.createElementNS(NS, tag);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  function fmtM(v) {
+    var m = v / 1e6;
+    return m >= 10 ? m.toFixed(1) + "m" : m >= 1 ? m.toFixed(2) + "m" : Math.round(v / 1e3) + "k";
+  }
+  function fmtUnits(v) { return v >= 1e6 ? (v / 1e6).toFixed(2) + "m" : Math.round(v / 1e3) + "k"; }
+  function fmtTick(v) { return v >= 1e6 ? parseFloat((v / 1e6).toFixed(2)) + "m" : Math.round(v / 1e3) + "k"; }
+  function niceStep(max) {
+    var target = max / 5, pow = Math.pow(10, Math.floor(Math.log10(target))), ms = [1, 2, 2.5, 5, 10];
+    for (var i = 0; i < ms.length; i++) if (target <= ms[i] * pow) return ms[i] * pow;
+    return 10 * pow;
+  }
+  function wrapLabel(text, maxChars) {
+    if (text.length <= maxChars || text.indexOf(" ") < 0) return [text];
+    var best = null;
+    for (var i = 0; i < text.length; i++) {
+      if (text[i] !== " ") continue;
+      var a = text.slice(0, i), b = text.slice(i + 1), score = Math.max(a.length, b.length);
+      if (best === null || score < best.score) best = { score: score, lines: [a, b] };
+    }
+    return best.lines;
+  }
+
+  function render() {
+    var owners = DATA.owners.slice().sort(function (a, b) {
+      return b.modes[mode].median - a.modes[mode].median;
+    });
+    var W = Math.max(320, Math.min(chartEl.clientWidth || 660, 680));
+    var ROWH = 40, BARH = 18, LEFT = 96, RIGHT = 12, TOP = 24, BOT = 6;
+    var H = TOP + owners.length * ROWH + BOT, plotW = W - LEFT - RIGHT;
+    var maxX = Math.max.apply(null, owners.map(function (o) {
+      var m = o.modes[mode];
+      return m.dist ? m.dist.x1 : m.median * 1.1;
+    })) * 1.02;
+    var x = function (v) { return LEFT + (v / maxX) * plotW; };
+
+    chartEl.innerHTML = "";
+    var svg = el("svg", { viewBox: "0 0 " + W + " " + H, role: "img",
+      "aria-label": "US AI chip owners in GB300 equivalents" });
+    chartEl.appendChild(svg);
+
+    var step = niceStep(maxX);
+    for (var v = 0; v <= maxX; v += step) {
+      svg.appendChild(el("line", { class: v === 0 ? "hg-zero-line" : "hg-grid-line",
+        x1: x(v), x2: x(v), y1: TOP - 4, y2: H - BOT }));
+      var last = v + step > maxX;
+      var t = el("text", { class: last ? "hg-unit" : "hg-axis",
+        x: last ? Math.min(x(v) + 30, W) : x(v), y: TOP - 9,
+        "text-anchor": v === 0 ? "start" : last ? "end" : "middle" });
+      t.textContent = (v === 0 ? "0" : fmtTick(v)) + (last ? " GB300e" : "");
+      svg.appendChild(t);
+    }
+
+    var color = getComputedStyle(root).getPropertyValue("--hg-bar").trim();
+    owners.forEach(function (o, i) {
+      var yMid = TOP + i * ROWH + ROWH / 2, m = o.modes[mode];
+      var g = el("g", {});
+      if (m.dist) {
+        var xL = x(m.dist.x0), xR = x(m.dist.x1);
+        var gid = "hg-g-" + o.owner.replace(/[^a-z]/gi, "") + "-" + mode;
+        var grad = el("linearGradient", { id: gid, gradientUnits: "userSpaceOnUse",
+          x1: xL, x2: xR, y1: 0, y2: 0 });
+        for (var k = 0; k <= 80; k += 2) {
+          grad.appendChild(el("stop", { offset: (k / 80).toFixed(3), "stop-color": color,
+            "stop-opacity": Math.pow(m.dist.d[k], 0.6).toFixed(3) }));
+        }
+        svg.appendChild(grad);
+        g.appendChild(el("rect", { x: xL, width: Math.max(2, xR - xL),
+          y: yMid - BARH / 2, height: BARH, fill: "url(#" + gid + ")" }));
+      } else {
+        g.appendChild(el("line", { x1: x(m.median), x2: x(m.median),
+          y1: yMid - BARH / 2, y2: yMid + BARH / 2, stroke: color, "stroke-width": 3 }));
+      }
+      var name = el("text", { class: "hg-name", x: LEFT - 8, "text-anchor": "end" });
+      var lines = wrapLabel(o.owner, 15);
+      if (lines.length === 1) {
+        name.setAttribute("y", yMid + 4);
+        name.textContent = lines[0];
+      } else {
+        name.setAttribute("y", yMid - 2);
+        lines.forEach(function (ln, j) {
+          var ts = el("tspan", { x: LEFT - 8 });
+          if (j) ts.setAttribute("dy", "13");
+          ts.textContent = ln;
+          name.appendChild(ts);
+        });
+      }
+      g.appendChild(name);
+      var val = el("text", { class: "hg-val", x: Math.max(x(m.median), LEFT + 14),
+        y: yMid + BARH / 2 + 11, "text-anchor": "middle" });
+      val.textContent = fmtM(m.median);
+      g.appendChild(val);
+      var hit = el("rect", { x: 0, y: yMid - ROWH / 2, width: W, height: ROWH, fill: "transparent" });
+      hit.addEventListener("mousemove", function (e) { showTip(o, e); });
+      hit.addEventListener("mouseleave", hideTip);
+      hit.addEventListener("click", function (e) { showTip(o, e); });
+      g.appendChild(hit);
+      svg.appendChild(g);
+    });
+
+    document.getElementById("hg-note").textContent = NOTES[mode];
+    postHeight();
+  }
+
+  function showTip(o, ev) {
+    var m = o.modes[mode];
+    var chips = Object.keys(o.chips).map(function (c) {
+      return { chip: c, units: o.chips[c].units, v: o.chips[c][mode] };
+    }).sort(function (a, b) { return b.v - a.v; });
+    var html = "<h4>" + o.owner + " — " + fmtM(m.median) + " GB300e</h4>";
+    html += "<p class='hg-ci'>" + (o.has_ci ? "80% CI: " + fmtM(m.lo) + "–" + fmtM(m.hi)
+      : "Point estimate — Epoch publishes no interval") + "</p><table>";
+    chips.forEach(function (c) {
+      html += "<tr><td>" + c.chip + "</td><td>" + fmtUnits(c.units) + " chips</td><td>" +
+        fmtM(c.v) + " · " + Math.round(c.v / m.median * 100) + "%</td></tr>";
+    });
+    html += "<tr class='hg-tot'><td>Total</td><td></td><td>" + fmtM(m.median) + "</td></tr></table>";
+    tipEl.innerHTML = html;
+    tipEl.style.display = "block";
+    var tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+    var tx = ev.clientX + 12, ty = ev.clientY + 10;
+    if (tx + tw > window.innerWidth - 8) tx = ev.clientX - tw - 12;
+    if (ty + th > window.innerHeight - 8) ty = ev.clientY - th - 10;
+    tipEl.style.left = tx + "px";
+    tipEl.style.top = ty + "px";
+  }
+  function hideTip() { tipEl.style.display = "none"; }
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest || !e.target.closest("#hg-chart")) hideTip();
+  });
+
+  // Lets a host page size an iframe to the figure: listen for
+  // {type:"hg-figure-height", height:<px>} on window.message.
+  function postHeight() {
+    if (window.parent === window) return;
+    try {
+      window.parent.postMessage({ type: "hg-figure-height",
+        height: document.documentElement.scrollHeight }, "*");
+    } catch (err) { /* cross-origin parent without a listener */ }
+  }
+
+  sel.addEventListener("change", function (e) { mode = e.target.value; hideTip(); render(); });
+  if (window.ResizeObserver) new ResizeObserver(render).observe(chartEl);
+  else window.addEventListener("resize", render);
+  render();
+})();
+</script>
+</body>
+</html>
