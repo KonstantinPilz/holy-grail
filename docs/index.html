@@ -226,9 +226,6 @@
         <p style="color:var(--text-2);font-size:12px;margin:6px 0 0;line-height:1.5"><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--bar)"></span>US developers
         <span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px;background:var(--bar-cn)"></span>Chinese developers</p>
         <div id="forecast2026-chart"></div>
-        <h4 style="font-size:15px;margin:18px 0 2px;line-height:1.25">Chinese developers (zoom)</h4>
-        <div id="forecast2026-cn-chart"></div>
-        <p class="fine" style="margin-top:2px">Same data, magnified scale.</p>
         <p class="fine" id="forecast2026-status"></p>
       </div>
       <!-- /forecast2026 -->
@@ -534,12 +531,11 @@ async function forecast2026Load(pw) {
   const status = document.getElementById("forecast2026-status");
   try {
     forecast2026Payload = await labsDecrypt(pw, await forecast2026FetchCT());
-    status.textContent = "Color = probability density (gamma 0.6); ticks mark p10/p90. Locked internal forecast.";
+    status.textContent = "Color = probability density; the bar spans the 80% interval (p10\u2013p90). Locked internal forecast.";
     renderForecast2026();
   } catch (error) {
     forecast2026Payload = null;
     document.getElementById("forecast2026-chart").innerHTML = "";
-    document.getElementById("forecast2026-cn-chart").innerHTML = "";
     status.textContent = "Forecast data unavailable.";
   }
 }
@@ -594,18 +590,6 @@ function renderForecast2026Panel(el, labs, panelKey, watermarkText) {
     bar.setAttribute("x", xL); bar.setAttribute("width", Math.max(2, xR - xL));
     bar.setAttribute("y", yMid - BARH / 2); bar.setAttribute("height", BARH);
     bar.setAttribute("fill", `url(#${gradientId})`); svg.appendChild(bar);
-    for (const percentile of [lab.p10, lab.p90]) {
-      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      tick.setAttribute("class", "pct-tick");
-      tick.setAttribute("x1", x(percentile)); tick.setAttribute("x2", x(percentile));
-      tick.setAttribute("y1", yMid - BARH / 2 - 3); tick.setAttribute("y2", yMid + BARH / 2 + 3);
-      svg.appendChild(tick);
-    }
-    const median = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    median.setAttribute("class", "median-line");
-    median.setAttribute("x1", x(lab.median)); median.setAttribute("x2", x(lab.median));
-    median.setAttribute("y1", yMid - BARH / 2); median.setAttribute("y2", yMid + BARH / 2);
-    svg.appendChild(median);
     const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
     name.setAttribute("class", "owner-label"); name.setAttribute("x", LEFTL - 8);
     name.setAttribute("y", yMid + 4);
@@ -635,12 +619,6 @@ function renderForecast2026() {
     document.getElementById("forecast2026-chart"),
     forecast2026Payload.labs,
     "all",
-    forecast2026Payload.watermark
-  );
-  renderForecast2026Panel(
-    document.getElementById("forecast2026-cn-chart"),
-    forecast2026Payload.labs.filter(lab => lab.country === "cn"),
-    "cn",
     forecast2026Payload.watermark
   );
 }
