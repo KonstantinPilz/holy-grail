@@ -1,15 +1,75 @@
 {
   "test": false,
   "labs": [
-    {"name": "OpenAI", "country": "us", "p10": 1438000, "median": 1880000, "p90": 2360000},
-    {"name": "Anthropic", "country": "us", "p10": 1310000, "median": 1750000, "p90": 2270000},
-    {"name": "Google DeepMind", "country": "us", "p10": 1039000, "median": 1493000, "p90": 2070000},
-    {"name": "Meta MSL", "country": "us", "p10": 630000, "median": 890000, "p90": 1230000},
-    {"name": "SpaceXAI", "country": "us", "p10": 300000, "median": 700000, "p90": 1090000},
-    {"name": "Qwen", "country": "cn", "p10": 8876, "median": 17857, "p90": 32191},
-    {"name": "MiniMax", "country": "cn", "p10": 10180, "median": 16729, "p90": 27029},
-    {"name": "DeepSeek", "country": "cn", "p10": 10427, "median": 16382, "p90": 25915},
-    {"name": "Zhipu", "country": "cn", "p10": 10342, "median": 15759, "p90": 24737},
-    {"name": "Moonshot", "country": "cn", "p10": 6405, "median": 9960, "p90": 16031}
+    {
+      "name": "OpenAI",
+      "country": "us",
+      "p10": 1438000,
+      "median": 1880000,
+      "p90": 2360000
+    },
+    {
+      "name": "Anthropic",
+      "country": "us",
+      "p10": 1310000,
+      "median": 1750000,
+      "p90": 2270000
+    },
+    {
+      "name": "Google DeepMind",
+      "country": "us",
+      "p10": 1039000,
+      "median": 1493000,
+      "p90": 2070000
+    },
+    {
+      "name": "Meta MSL",
+      "country": "us",
+      "p10": 630000,
+      "median": 890000,
+      "p90": 1230000
+    },
+    {
+      "name": "SpaceXAI",
+      "country": "us",
+      "p10": 300000,
+      "median": 700000,
+      "p90": 1090000
+    },
+    {
+      "name": "Qwen",
+      "country": "cn",
+      "p10": 8912,
+      "median": 17946,
+      "p90": 32313
+    },
+    {
+      "name": "MiniMax",
+      "country": "cn",
+      "p10": 10187,
+      "median": 16732,
+      "p90": 27045
+    },
+    {
+      "name": "DeepSeek",
+      "country": "cn",
+      "p10": 10423,
+      "median": 16367,
+      "p90": 25874
+    },
+    {
+      "name": "Zhipu",
+      "country": "cn",
+      "p10": 10341,
+      "median": 15752,
+      "p90": 24716
+    },
+    {
+      "name": "Moonshot",
+      "country": "cn",
+      "p10": 6521,
+      "median": 10396,
+      "p90": 19610
+    }
   ]
 }
