@@ -139,6 +139,33 @@
   #labs-form button:hover { background: var(--control-active); }
   #labs-err { color: #c0392b; font-size: 12px; }
 </style>
+<!-- funding -->
+<style>
+  /* ---- AI lab equity funding section ---- */
+  #funding { margin-top: 34px; border-top: 1px solid var(--border); padding-top: 20px; }
+  #funding h2 { font-size: 18px; margin: 0 0 4px; font-weight: 700; line-height: 1.25; }
+  #funding-scale-select {
+    flex-shrink: 0; margin-top: 2px; margin-left: auto;
+    appearance: none; -webkit-appearance: none;
+    border: 1px solid var(--border); border-radius: 4px; background: var(--control-bg);
+    color: var(--text); font: inherit; font-size: 13px; font-weight: 700; line-height: 1.2;
+    padding: 6px 30px 6px 12px; cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23808080' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    transition: background-color .12s ease, border-color .12s ease;
+  }
+  #funding-scale-select:hover { background-color: var(--control-active); border-color: var(--text-3); }
+  #funding-scale-select:focus-visible { outline: 2px solid var(--bar); outline-offset: 1px; }
+  #funding-chart { width: 100%; margin-top: 6px; }
+  #funding .fund-label { font-size: 11.5px; font-weight: 700; }
+  #funding .fund-leader { fill: none; stroke-width: 1; opacity: .5; }
+  #funding .fund-cross { stroke: var(--text-3); stroke-width: 1; shape-rendering: crispEdges; }
+  #funding .fund-tick { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+  #funding-note { margin: 8px 0 0; min-height: 0; }
+  #tooltip .fsw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  #tooltip td.fund-name { color: var(--text); white-space: nowrap; }
+</style>
+<!-- /funding -->
 </head>
 <body>
 <div class="wrap">
@@ -231,6 +258,38 @@
       <!-- /forecast2026 -->
     </div>
   </section>
+
+  <!-- funding -->
+  <section id="funding">
+    <header>
+      <div>
+        <h2>AI lab equity funding, 2022–2026</h2>
+        <p class="subtitle">Cumulative primary equity capital raised, in billions of US dollars — US frontier labs vs leading Chinese AI developers. Counted at round close; excludes debt and secondary sales.</p>
+      </div>
+      <select id="funding-scale-select" aria-label="Y-axis scale">
+        <option value="linear" selected>Linear scale</option>
+        <option value="log">Log scale</option>
+      </select>
+    </header>
+    <div id="funding-chart"></div>
+    <p class="mode-note" id="funding-note"></p>
+
+    <p class="fine" id="funding-fine">
+      Primary equity capital in closed rounds (committed at close; disclosed tranche schedules stepped at their dates).
+      Excludes debt, secondary share sales/tenders, and unclosed rounds.
+      DeepSeek’s June 2026 round (¥51B) includes ¥20B from founder Liang Wenfeng; nearly all of it sits in a founder-controlled LP rather than direct equity.
+      xAI includes X Corp/SpaceX/Tesla money and merged into SpaceX in February 2026 (flat thereafter).
+      Part of OpenAI’s $122B March 2026 round remained unfunded as of August 2026 (SoftBank’s final $10B tranche due October).
+      Not inflation-adjusted.
+      Data &amp; sources: <a id="funding-sheet-link" href="https://docs.google.com/spreadsheets/d/1n0yQSwTY_XdVhTICZxieZCT50MUBLj0dEXDHBUcq6jk/edit">spreadsheet</a>.
+    </p>
+
+    <details>
+      <summary>Funding methodology and per-lab totals</summary>
+      <div class="method" id="funding-method"></div>
+    </details>
+  </section>
+  <!-- /funding -->
 
 
   <footer>
@@ -1052,5 +1111,390 @@ if (labsSaved) labsUnlock(labsSaved, false);
 window.addEventListener("resize", renderLabs);
 window.addEventListener("resize", renderForecast2026); // forecast2026
 </script>
+<!-- funding -->
+<script src="funding_data.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (typeof FUNDING === "undefined" || !FUNDING.series) return;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  const MONTHS = ["January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December"];
+  // Absolute month index so arithmetic across years is trivial.
+  const absIdx = s => { const p = s.split("-"); return (+p[0]) * 12 + (+p[1]) - 1; };
+  const monthLong = i => MONTHS[i % 12] + " " + Math.floor(i / 12);
+  const monthShort = i => MONTHS[i % 12].slice(0, 3) + " " + Math.floor(i / 12);
+
+  const I0 = absIdx(FUNDING.xStart), I1 = absIdx(FUNDING.xEnd), SPAN = Math.max(1, I1 - I0);
+  const FLOOR = 0.02;                       // $20M floor for the log scale
+
+  const SERIES = FUNDING.series.map(s => {
+    const i0 = Math.max(absIdx(s.start), I0);
+    return {
+      name: s.name, country: s.country,
+      colorLight: s.colorLight, colorDark: s.colorDark,
+      total: s.total, baseline: s.baseline, i0: i0,
+      steps: s.steps.map(t => ({ i: absIdx(t[0]), before: t[1], after: t[2] }))
+        .filter(t => t.i >= i0 && t.i <= I1)
+        .sort((a, b) => a.i - b.i),
+    };
+  });
+
+  function valueAt(s, i) {
+    if (i < s.i0) return null;             // not founded / no visible line yet
+    let v = s.baseline;
+    for (const t of s.steps) { if (t.i <= i) v = t.after; else break; }
+    return v;
+  }
+  const r1 = v => Math.round(v * 10) / 10;
+  const fmtEnd = v => v >= 100 ? "$" + Math.round(v) + "B" : "$" + r1(v).toFixed(1) + "B";
+  const fmtTip = v => v <= 0 ? "$0" : v < 1 ? "$" + Math.round(v * 1000) + "M" : "$" + r1(v).toFixed(1) + "B";
+  const fmtAxis = v => v === 0 ? "0" : "$" + (Number.isInteger(v) ? v : r1(v)) + "B";
+  function fundStep(max) {
+    const target = max / 4;
+    const pow = Math.pow(10, Math.floor(Math.log10(target)));
+    for (const m of [1, 2, 2.5, 5, 10]) if (target <= m * pow) return m * pow;
+    return 10 * pow;
+  }
+
+  // ---- accessible label ink ----
+  // Several palette colours are below WCAG 4.5:1 as text (yellow #eda100 is
+  // 2.2:1 on white, Z.ai's green 3.3:1 on the dark surface). Lines keep the
+  // palette colour; the end LABEL is redrawn with the same hue and saturation
+  // and only its lightness moved until it clears 4.5:1 against the surface.
+  // Computed at runtime so a regenerated palette can't silently go unreadable.
+  const inkCache = {};
+  function hexRgb(h) {
+    h = String(h).trim().replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const rgbHex = c => "#" + c.map(v => Math.max(0, Math.min(255, Math.round(v)))
+    .toString(16).padStart(2, "0")).join("");
+  const chan = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = c => 0.2126 * chan(c[0]) + 0.7152 * chan(c[1]) + 0.0722 * chan(c[2]);
+  function ratio(a, b) {
+    const x = lum(a), y = lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+  function toHsl(c) {
+    const r = c[0] / 255, g = c[1] / 255, b = c[2] / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    if (mx === mn) return [0, 0, l];
+    const d = mx - mn;
+    const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    let h;
+    if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0));
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    return [h * 60, s, l];
+  }
+  function fromHsl(h, s, l) {
+    h = ((h % 360) + 360) % 360 / 360;
+    if (s === 0) return [l * 255, l * 255, l * 255];
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = t => {
+      t = (t % 1 + 1) % 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+  }
+  function labelInk(color, surface) {
+    const key = color + "|" + surface;
+    if (inkCache[key]) return inkCache[key];
+    let out = color;
+    const bg = hexRgb(surface), base = hexRgb(color);
+    // 4.6 rather than a bare 4.5 so no label sits exactly on the threshold
+    if (bg && base && ratio(base, bg) < 4.6) {
+      const hsl = toHsl(base), step = lum(bg) > 0.5 ? -0.005 : 0.005;
+      let l = hsl[2];
+      for (let k = 0; k < 240; k++) {
+        l += step;
+        if (l < 0 || l > 1) break;
+        const c = fromHsl(hsl[0], hsl[1], l);
+        if (ratio(c, bg) >= 4.6) { out = rgbHex(c); break; }
+      }
+    }
+    inkCache[key] = out;
+    return out;
+  }
+
+  const el = document.getElementById("funding-chart");
+  const tipEl = document.getElementById("tooltip");
+  const noteEl = document.getElementById("funding-note");
+  const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
+  const seriesColor = s => darkMQ.matches ? s.colorDark : s.colorLight;
+  const LOG_NOTE = "Log scale — lines along the bottom mean no external equity raised yet " +
+                   "(DeepSeek was self-funded by High-Flyer until June 2026).";
+  let scale = "linear";
+  let crossG = null;                        // current crosshair group, for outside-click hiding
+
+  function hideFunding() {
+    if (crossG) crossG.style.display = "none";
+    tipEl.style.display = "none";
+  }
+
+  function renderFunding() {
+    const W = Math.min(el.clientWidth || 628, 660);
+    const H = 405, T = 14, B = 32, L = 42;
+    const RIGHT = Math.max(100, Math.min(118, W - 300));
+    const plotW = Math.max(60, W - L - RIGHT);
+    const plotH = H - T - B;
+    const yBot = T + plotH, xRight = L + plotW;
+    const dark = darkMQ.matches;
+
+    const maxTotal = Math.max.apply(null, SERIES.map(s => s.total));
+    const linMax = maxTotal * 1.05;
+    const logLo = Math.log10(FLOOR) - 0.14, logHi = Math.log10(maxTotal) + 0.06;
+    const x = i => L + (i - I0) / SPAN * plotW;
+    const y = v => scale === "log"
+      ? T + plotH * (1 - (Math.log10(Math.max(v, FLOOR)) - logLo) / (logHi - logLo))
+      : T + plotH * (1 - v / linMax);
+
+    el.innerHTML = "";
+    const svg = mk("svg", {
+      viewBox: "0 0 " + W + " " + H, width: "100%", height: H, role: "img",
+      "aria-label": "Cumulative primary equity funding raised by US and Chinese AI labs, " +
+                    FUNDING.xStart.slice(0, 4) + " to " + FUNDING.xEnd.slice(0, 4) +
+                    ", in billions of US dollars, " + scale + " scale",
+    });
+    el.appendChild(svg);                    // in the DOM first so text can be measured
+
+    // ---- y gridlines + labels ----
+    let ticks;
+    if (scale === "log") {
+      ticks = [0.1, 1, 10, 100].filter(v => Math.log10(v) >= logLo && Math.log10(v) <= logHi);
+    } else {
+      ticks = [];
+      const st = fundStep(linMax);
+      for (let v = 0; v <= linMax + 1e-9; v += st) ticks.push(v);
+    }
+    for (const v of ticks) {
+      const yy = y(v);
+      svg.appendChild(mk("line", {
+        class: (scale === "linear" && v === 0) ? "zero-line" : "grid-line",
+        x1: L, x2: xRight, y1: yy, y2: yy,
+      }));
+      const t = mk("text", { class: "axis-label", x: L - 6, y: yy + 3.5, "text-anchor": "end" });
+      t.textContent = fmtAxis(v);
+      svg.appendChild(t);
+    }
+    if (scale === "log") {                  // the floor still needs a visible baseline
+      svg.appendChild(mk("line", { class: "zero-line", x1: L, x2: xRight, y1: yBot, y2: yBot }));
+    }
+
+    // ---- x ticks: calendar years ----
+    for (let yr = Math.ceil(I0 / 12); yr * 12 <= I1; yr++) {
+      const xi = x(yr * 12);
+      if (xi < L - 0.5) continue;
+      svg.appendChild(mk("line", { class: "fund-tick", x1: xi, x2: xi, y1: yBot, y2: yBot + 4 }));
+      const t = mk("text", { class: "axis-label", x: xi, y: yBot + 17, "text-anchor": "middle" });
+      t.textContent = yr;
+      svg.appendChild(t);
+    }
+
+    // ---- step-after lines + jump markers ----
+    for (const s of SERIES) {
+      const color = dark ? s.colorDark : s.colorLight;
+      const pts = [];
+      let cur = s.baseline;
+      pts.push([x(s.i0), y(cur)]);
+      for (const t of s.steps) {
+        pts.push([x(t.i), y(cur)]);         // horizontal…
+        pts.push([x(t.i), y(t.after)]);     // …then vertical
+        cur = t.after;
+      }
+      pts.push([x(I1), y(cur)]);
+      svg.appendChild(mk("path", {
+        d: "M" + pts.map(p => p[0].toFixed(2) + "," + p[1].toFixed(2)).join("L"),
+        fill: "none", stroke: color, "stroke-width": 2,
+        "stroke-linejoin": "round", "stroke-linecap": "round",
+      }));
+      for (const t of s.steps) {
+        svg.appendChild(mk("circle", { cx: x(t.i), cy: y(t.after), r: 2.5, fill: color }));
+      }
+    }
+
+    // ---- direct end labels, pushed apart, with leader lines where they moved ----
+    const GAP = 13, topLim = T + 5, botLim = yBot;
+    const ends = SERIES.map(s => ({ s: s, color: dark ? s.colorDark : s.colorLight, lineY: y(s.total) }))
+      .sort((a, b) => a.lineY - b.lineY);
+    ends.forEach((e, k) => {
+      e.ly = k === 0 ? Math.max(e.lineY, topLim) : Math.max(e.lineY, ends[k - 1].ly + GAP);
+    });
+    for (let k = ends.length - 1; k >= 0; k--) {
+      const lim = k === ends.length - 1 ? botLim : ends[k + 1].ly - GAP;
+      ends[k].ly = Math.max(topLim, Math.min(ends[k].ly, lim));
+    }
+    const labelX = xRight + 10, avail = W - labelX - 2;
+    const surface = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    const texts = [];
+    for (const e of ends) {
+      if (Math.abs(e.ly - e.lineY) > 2.5) {
+        svg.appendChild(mk("path", {
+          class: "fund-leader", stroke: e.color,
+          d: "M" + xRight + "," + e.lineY.toFixed(2) +
+             "L" + (xRight + 4) + "," + e.lineY.toFixed(2) +
+             "L" + (xRight + 7) + "," + e.ly.toFixed(2) +
+             "L" + (xRight + 9) + "," + e.ly.toFixed(2),
+        }));
+      }
+      // leader lines stay on the palette colour; only the text is re-inked
+      const t = mk("text", { class: "fund-label", x: labelX, y: e.ly + 4,
+                             fill: labelInk(e.color, surface) });
+      t.textContent = e.s.name + " " + fmtEnd(e.s.total);
+      svg.appendChild(t);
+      texts.push(t);
+    }
+    // Shrink to fit rather than let a label run off the right edge.
+    let widest = 0;
+    for (const t of texts) {
+      const w = t.getComputedTextLength ? t.getComputedTextLength() : 0;
+      if (w > widest) widest = w;
+    }
+    if (widest > avail && avail > 0) {
+      const fs = Math.max(9, 11.5 * avail / widest);
+      // inline style, not a presentation attribute — the .fund-label rule would win otherwise
+      for (const t of texts) t.style.fontSize = fs.toFixed(2) + "px";
+    }
+
+    // ---- crosshair + hover layer ----
+    const cg = mk("g", { "pointer-events": "none" });
+    cg.style.display = "none";
+    const cline = mk("line", { class: "fund-cross", y1: T, y2: yBot });
+    cg.appendChild(cline);
+    const dots = SERIES.map(s => {
+      const c = mk("circle", { r: 3.2, fill: dark ? s.colorDark : s.colorLight,
+                               stroke: "var(--bg)", "stroke-width": 1.5 });
+      cg.appendChild(c);
+      return c;
+    });
+    svg.appendChild(cg);
+    crossG = cg;
+
+    function idxFromClientX(clientX) {
+      const r = svg.getBoundingClientRect();
+      const px = (clientX - r.left) * (W / (r.width || W));
+      const i = Math.round((px - L) / plotW * SPAN) + I0;
+      return Math.max(I0, Math.min(I1, i));
+    }
+    function showFunding(clientX, clientY) {
+      const i = idxFromClientX(clientX);
+      const xi = x(i);
+      cline.setAttribute("x1", xi); cline.setAttribute("x2", xi);
+      SERIES.forEach((s, k) => {
+        const v = valueAt(s, i);
+        if (v === null) { dots[k].setAttribute("display", "none"); return; }
+        dots[k].removeAttribute("display");
+        dots[k].setAttribute("cx", xi); dots[k].setAttribute("cy", y(v));
+      });
+      cg.style.display = "";
+      const rows = SERIES.map(s => ({ s: s, v: valueAt(s, i) }))
+        .filter(r => r.v !== null)
+        .sort((a, b) => b.v - a.v);
+      let html = "<h3>" + monthLong(i) + "</h3><table>";
+      for (const r of rows) {
+        html += '<tr><td class="fund-name"><span class="fsw" style="background:' +
+                (dark ? r.s.colorDark : r.s.colorLight) + '"></span>' + r.s.name +
+                "</td><td>" + fmtTip(r.v) + "</td></tr>";
+      }
+      html += "</table>";
+      tipEl.innerHTML = html;
+      tipEl.style.display = "block";
+      const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+      let tx = clientX + 12, ty = clientY + 10;
+      if (tx + tw > window.innerWidth - 8) tx = clientX - tw - 12;
+      if (ty + th > window.innerHeight - 8) ty = clientY - th - 10;
+      tipEl.style.left = tx + "px";
+      tipEl.style.top = ty + "px";
+    }
+
+    const ov = mk("rect", { x: L, y: T, width: plotW, height: plotH, fill: "transparent" });
+    ov.addEventListener("mousemove", ev => showFunding(ev.clientX, ev.clientY));
+    ov.addEventListener("mouseleave", hideFunding);
+    // stopPropagation keeps the page-level "click outside #svg-main hides the
+    // tooltip" handler from immediately closing what we just opened.
+    ov.addEventListener("click", ev => { ev.stopPropagation(); showFunding(ev.clientX, ev.clientY); });
+    ov.addEventListener("touchstart", ev => {
+      const t = ev.touches[0];
+      if (t) { ev.stopPropagation(); showFunding(t.clientX, t.clientY); }
+    }, { passive: true });
+    ov.addEventListener("touchmove", ev => {
+      const t = ev.touches[0];
+      if (t) showFunding(t.clientX, t.clientY);
+    }, { passive: true });
+    svg.appendChild(ov);
+
+    noteEl.textContent = scale === "log" ? LOG_NOTE : "";
+  }
+
+  function buildFundingMethod() {
+    const rows = FUNDING.series.slice().sort((a, b) => b.total - a.total).map(s => {
+      const steps = s.steps.slice().sort((a, b) => absIdx(a[0]) - absIdx(b[0]));
+      let big = null;
+      for (const t of steps) {
+        const d = t[2] - t[1];
+        if (!big || d > big.d) big = { d: d, i: absIdx(t[0]) };
+      }
+      const period = steps.length
+        ? monthShort(absIdx(steps[0][0])) + " – " + monthShort(absIdx(steps[steps.length - 1][0]))
+        : "—";
+      return "<tr><td>" + s.name + "</td><td>" + fmtEnd(s.total) + "</td><td>" +
+             steps.length + " (" + period + ")</td><td>" +
+             (big ? monthShort(big.i) + ", +" + fmtEnd(big.d) : "—") + "</td></tr>";
+    }).join("");
+    document.getElementById("funding-method").innerHTML =
+      '<h4>What is shown</h4>' +
+      '<p>Each line is one lab’s running total of primary equity capital raised, in nominal US dollars. ' +
+      'The line steps up in the month a round closed and stays flat until the next close, so the height at any date ' +
+      'is everything the lab had raised by then, not the size of a single round. Data as of ' + FUNDING.asOf + '.</p>' +
+      '<h4>Counting convention</h4>' +
+      '<p>We count the full amount committed at close in the month the round closed, except where a round published a ' +
+      'tranche schedule — those tranches step at their own dates. Debt, secondary share sales and employee tenders, ' +
+      'and announced-but-unclosed rounds are excluded. Non-USD rounds are converted to US dollars; per-round rates are ' +
+      'in the spreadsheet. Figures are nominal, not inflation-adjusted.</p>' +
+      '<div class="tablewrap"><table><thead><tr><th>Lab</th><th>Total raised</th>' +
+      '<th>Rounds counted</th><th>Largest single step</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<h4>Lab-specific notes</h4>' +
+      '<ul>' +
+      '<li><strong>OpenAI</strong> — part of the $122B March 2026 round was still unfunded in August 2026 ' +
+      '(SoftBank’s final $10B tranche is due in October); we count it at close.</li>' +
+      '<li><strong>xAI</strong> — includes money from X Corp, SpaceX and Tesla. xAI merged into SpaceX in ' +
+      'February 2026, so the line is flat afterwards.</li>' +
+      '<li><strong>DeepSeek</strong> — no external equity until the June 2026 round (¥51B). That round includes ' +
+      '¥20B from founder Liang Wenfeng, and nearly all of it sits in a founder-controlled LP rather than direct equity.</li>' +
+      '</ul>' +
+      '<p>Per-round sources live in the companion spreadsheet linked above.</p>';
+  }
+
+  document.getElementById("funding-scale-select").addEventListener("change", ev => {
+    scale = ev.target.value;
+    hideFunding();
+    renderFunding();
+  });
+  window.addEventListener("resize", renderFunding);
+  darkMQ.addEventListener("change", renderFunding);
+  document.addEventListener("click", ev => {
+    // Only ever hide our own crosshair here — the shared #tooltip is managed by
+    // the page-level handler, so we must not fight it over the other charts.
+    if (crossG && !ev.target.closest("#funding-chart")) crossG.style.display = "none";
+  });
+
+  buildFundingMethod();
+  renderFunding();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderFunding);
+})();
+</script>
+<!-- /funding -->
 </body>
 </html>
