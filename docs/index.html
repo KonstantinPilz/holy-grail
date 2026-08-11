@@ -332,6 +332,8 @@
     <p class="fine" id="capex-fine">
       US series are cash capex from SEC filings; Chinese series are company filings where public, press/analyst
       estimates for ByteDance, and audited PP&amp;E additions for Huawei (mostly manufacturing, not AI datacenters).
+      State-backed = est. computing capex of state-controlled entities (three telcos + local computing centers);
+      mostly facilities and power rather than chips — see methodology.
       Data &amp; sources: <a id="capex-sheet-link" href="https://docs.google.com/spreadsheets/d/1AZ859y7veVoI0r_NPzKrhWOB0YX7uP_nGpeyNaUK3w8/edit">spreadsheet</a>.
     </p>
 
@@ -1653,6 +1655,13 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
   // flat 14px box makes the wide wordmark-style marks read small and the solid
   // square marks read large.
   const LOGO_SCALE = { meta: 1.22, oracle: 1.16, coreweave: 1.30 };
+  // Right-gutter labels are tight; a couple of series names are shortened there
+  // only. The tooltip and the methodology table keep the full name.
+  const LABEL_NAME = { "State-backed (est.)": "State-backed" };
+  // A series whose name already ends in "(est.)" would otherwise read
+  // "State-backed (est.) $23.3B (est., 16–28)" wherever we append the per-cell
+  // estimate flag, so the suffix is dropped in those two places.
+  const baseName = s => s.replace(/\s*\(est\.\)\s*$/, "");
 
   const SERIES = CAPEX.series.map(s => ({
     name: s.name, country: s.country, logo: s.logo || "",
@@ -1777,7 +1786,7 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
     el.innerHTML = "";
     const svg = mk("svg", {
       viewBox: "0 0 " + W + " " + H, width: "100%", height: H, role: "img",
-      "aria-label": "Annual total capital expenditure of eleven US and Chinese technology companies, " +
+      "aria-label": "Annual total capital expenditure of eleven US and Chinese technology companies plus estimated Chinese state-backed computing capex, " +
                     YEARS[0] + " to " + YEARS[LAST] + ", in billions of US dollars, " + scale + " scale. " +
                     "2026 values are company guidance or estimates.",
     });
@@ -1886,11 +1895,20 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
         im.setAttribute("href", href);
         im.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", href);
         svg.appendChild(im);
+      } else {
+        // Aggregates have no mark to show, so the logo slot carries a short rule
+        // in the line colour — dashed where the whole series is estimated, which
+        // doubles as a key for the dashed-means-estimate convention.
+        svg.appendChild(mk("line", {
+          x1: (logoX + 2).toFixed(2), x2: (logoX + LOGO - 2).toFixed(2),
+          y1: e.ly.toFixed(2), y2: e.ly.toFixed(2), stroke: e.color, "stroke-width": 2,
+          "stroke-dasharray": e.s.est.every(Boolean) ? "3,3" : "none",
+        }));
       }
       // leader lines stay on the palette colour; only the text is re-inked
       const t = mk("text", { class: "cx-label", x: labelX, y: e.ly + 4,
                              fill: labelInk(e.color, surface) });
-      t.textContent = e.s.name + " " + fmtEnd(e.s.end);
+      t.textContent = (LABEL_NAME[e.s.name] || e.s.name) + " " + fmtEnd(e.s.end);
       svg.appendChild(t);
       texts.push(t);
     }
@@ -1948,7 +1966,7 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
           val += ' <span class="cx-rng">(est.' + rng + ")</span>";
         }
         html += '<tr><td class="cx-name"><span class="cxsw" style="background:' +
-                (dark ? r.s.colorDark : r.s.colorLight) + '"></span>' + r.s.name +
+                (dark ? r.s.colorDark : r.s.colorLight) + '"></span>' + baseName(r.s.name) +
                 "</td><td>" + val + "</td></tr>";
       }
       html += "</table>";
@@ -1989,16 +2007,18 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       .map(s => {
         const v25 = s.values[LAST - 1], v26 = s.values[LAST];
         const est25 = s.est[LAST - 1];
-        return "<tr><td>" + s.name + "</td><td>" +
+        return "<tr><td>" + baseName(s.name) + "</td><td>" +
                (v25 === null ? "&mdash;" : fmtTip(v25) + (est25 ? " (est.)" : "")) + "</td><td>" +
                (v26 === null ? "&mdash;" : fmtTip(v26)) + "</td><td>" +
                (s.range2026 ? fmtRange(s.range2026) : "&mdash;") + "</td></tr>";
       }).join("");
     document.getElementById("capex-method").innerHTML =
       '<h4>What is shown</h4>' +
-      '<p>Each line is one company’s <strong>total</strong> annual capital expenditure in nominal US dollars — ' +
-      'all capex, not only AI or datacenter spending. Points sit on calendar years and are joined by straight ' +
-      'segments; nothing is interpolated between them. Data as of ' + CAPEX.asOf + '.</p>' +
+      '<p>Each company line is that company’s <strong>total</strong> annual capital expenditure in nominal US ' +
+      'dollars — all capex, not only AI or datacenter spending. The one exception is <strong>State-backed</strong>, ' +
+      'which counts only the computing capex of Chinese state-controlled entities, not their total capex — for ' +
+      'the carriers that means excluding 5G, which is the bulk of what they spend. Points sit on calendar years and are joined by straight segments; nothing is interpolated ' +
+      'between them. Data as of ' + CAPEX.asOf + '.</p>' +
       '<div class="tablewrap"><table><thead><tr><th>Company</th><th>2025</th>' +
       '<th>2026 estimate</th><th>2026 range</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<h4>Estimate convention</h4>' +
@@ -2051,6 +2071,25 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       '<strong>manufacturing capital spending, not AI datacenter spending</strong>, and should not be read ' +
       'alongside the others as if it were. Its 2026 point has no guidance and no analyst estimate behind it; it is ' +
       'a flat-line extrapolation.</li>' +
+      '<li><strong>State-backed</strong> is the only auditable slice of China’s state AI spending, and it is an ' +
+      'estimate in every year. It sums two parts. First, the computing-power and AI-network capex lines that ' +
+      'China Mobile, China Telecom and China Unicom each disclose separately from their much larger 5G capex — ' +
+      'reported for past years, company guidance for 2026. Second, a non-telco state layer of local ' +
+      'intelligent-computing centers and East-Data-West-Computing hub projects, reconstructed from tender data ' +
+      'and good to roughly plus or minus half. China Mobile’s apparent 2025 collapse was a reclassification ' +
+      'rather than a cut: computing capex of RMB 23.3B plus a newly carved-out AI-network line of RMB 7.4B is ' +
+      'RMB 30.7B like for like — an 18% miss against its own plan, and squarely inside its pattern of missing ' +
+      'that plan every year (13% in 2023, 22% in 2024). We plot the 2026 guidance, as we do for the ' +
+      'hyperscalers, but a repeat of that pattern is the obvious downside case.</li>' +
+      '<li><strong>What the state line is, and is not.</strong> It is <strong>mostly datacenter shell and ' +
+      'power, not accelerators</strong> — derived accelerator awards run only about RMB 8B a year, a small ' +
+      'fraction of the line — so it should not be read as a chip-buying number. It excludes the carriers’ 5G ' +
+      'and connectivity capex, and it excludes government guidance-fund equity, since committed capital is ' +
+      'neither deployed capital nor capex and would double-count the portfolio companies already charted. The ' +
+      'reported RMB 2 trillion state datacenter program is not added either: the NDRC has declined to confirm ' +
+      'it, no AI allocation has appeared in special-treasury issuance, and the draft has China Mobile and ' +
+      'China Telecom operating most of it — so if it happens it flows through the same telco lines already in ' +
+      'this series rather than alongside them.</li>' +
       '<li><strong>Currency.</strong> Renminbi figures convert at period-average rates: 7.08 in 2023, 7.20 in 2024, ' +
       '7.19 in 2025 and 6.86 in 2026. The 2026 rate is a January–August average rather than a full-year average, ' +
       'so the 2026 dollar figures may move about 1% as the year completes.</li>' +
@@ -2064,11 +2103,13 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       '<p>Capex understates the buildout in both directions. Meta’s Hyperion data centre in Louisiana sits in a ' +
       '20%-owned unconsolidated joint venture with about $27B of committed development costs outside its capex ' +
       'line. Oracle runs the other way: about $75B of cumulative prepaid and customer-supplied GPU contracts never ' +
-      'enter its property and equipment. On the Chinese side these five are not all of the country’s AI capital ' +
-      'spending — state-led datacenter programmes, the telcos and tier-2 spenders are all excluded.</p>' +
+      'enter its property and equipment. On the Chinese side these six lines are not all of the country’s AI ' +
+      'capital spending: the state layer is an estimate rather than a disclosure, and tier-2 private spenders ' +
+      'such as Meituan and Xiaomi are excluded entirely.</p>' +
       '<h4>Colors and logos</h4>' +
-      '<p>Each line carries its company’s own brand color and official logo mark. Eleven series is more than ' +
-      'brand palettes can separate on their own — six of these companies use a blue and two use an orange — so ' +
+      '<p>Every company line carries that company’s own brand color and official logo mark. Twelve series is ' +
+      'more than brand palettes can separate on their own — six of these companies use a blue and two use an ' +
+      'orange — so ' +
       'in each collision the best-sourced brand keeps its hue and the others shift inside their own family:</p>' +
       '<ul>' +
       '<li><strong>Microsoft’s</strong> logo is four flat colors with no single brand color, so its line takes ' +
@@ -2081,6 +2122,9 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       'legibility on a white page, so it stays clear of the blues.</li>' +
       '<li><strong>CoreWeave’s</strong> mark is black-and-white and its site blue is another near-duplicate of ' +
       'Meta’s, so its line is a neutral gray.</li>' +
+      '<li><strong>State-backed</strong> is an aggregate of many state entities rather than one company, so it has ' +
+      'neither a brand color nor a mark. Its line is an assigned bronze, and the slot where the other series ' +
+      'carry a logo holds a short dashed rule in the line color instead.</li>' +
       '<li><strong>Amazon</strong> keeps Smile Orange #FF9900 and <strong>Alibaba</strong> keeps #FF6A00. ' +
       '<strong>Oracle</strong> and <strong>Huawei</strong> are both red — Oracle Redwood #C74634 and Huawei’s ' +
       '#C7000B, the hex on huawei.com’s own <code>.color-huawei</code> rule rather than the #CF0A2C usually ' +
@@ -2088,8 +2132,8 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       '</ul>' +
       '<p>No two lines are closer than a CIEDE2000 distance of 12 in either theme. ' +
       'Because brand colors are not chosen for contrast, they are not the only way to tell the lines apart: ' +
-      'every series is named and valued at the right-hand end next to its logo, and the hover tooltip lists all ' +
-      'eleven. Label text is re-inked at render time — same hue, lightness shifted — so it clears a 4.5:1 ' +
+      'every series is named and valued at the right-hand end next to its logo or swatch, and the hover tooltip ' +
+      'lists all twelve. Label text is re-inked at render time — same hue, lightness shifted — so it clears a 4.5:1 ' +
       'contrast ratio against the page in both themes.</p>' +
       '<p>Logos are the companies’ official marks, self-hosted and unmodified apart from the light/dark color ' +
       'flip on the monochrome ones. They are trademarks of their owners, used here to identify the subject of ' +
