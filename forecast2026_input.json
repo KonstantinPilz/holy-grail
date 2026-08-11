@@ -39,37 +39,37 @@
     {
       "name": "Qwen",
       "country": "cn",
-      "p10": 12861,
-      "median": 24692,
-      "p90": 45589
+      "p10": 13248,
+      "median": 25304,
+      "p90": 46639
     },
     {
       "name": "MiniMax",
       "country": "cn",
-      "p10": 11885,
-      "median": 20141,
-      "p90": 34429
+      "p10": 11884,
+      "median": 20142,
+      "p90": 34441
     },
     {
       "name": "DeepSeek",
       "country": "cn",
-      "p10": 10861,
-      "median": 17599,
-      "p90": 30793
+      "p10": 10860,
+      "median": 17600,
+      "p90": 30796
     },
     {
       "name": "Zhipu",
       "country": "cn",
       "p10": 10491,
-      "median": 16112,
-      "p90": 25646
+      "median": 16113,
+      "p90": 25648
     },
     {
       "name": "Moonshot",
       "country": "cn",
       "p10": 6937,
-      "median": 12655,
-      "p90": 33838
+      "median": 12657,
+      "p90": 33999
     }
   ]
 }
