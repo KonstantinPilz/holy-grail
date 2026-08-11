@@ -264,7 +264,7 @@
     <header>
       <div>
         <h2>AI lab equity funding, 2022–2026</h2>
-        <p class="subtitle">Cumulative primary equity capital raised, in billions of US dollars — US frontier labs vs leading Chinese AI developers. Counted at round close; excludes debt and secondary sales.</p>
+        <p class="subtitle">Cumulative equity capital raised, US$ billions.</p>
       </div>
       <select id="funding-scale-select" aria-label="Y-axis scale">
         <option value="linear" selected>Linear scale</option>
@@ -275,18 +275,12 @@
     <p class="mode-note" id="funding-note"></p>
 
     <p class="fine" id="funding-fine">
-      Primary equity capital in closed rounds (committed at close; disclosed tranche schedules stepped at their dates).
-      Excludes debt, secondary share sales/tenders, and unclosed rounds.
-      Each line begins at that lab’s first round; DeepSeek was self-funded by High-Flyer until June 2026.
-      DeepSeek’s June 2026 round (¥51B) includes ¥20B from founder Liang Wenfeng; nearly all of it sits in a founder-controlled LP rather than direct equity.
-      xAI includes X Corp/SpaceX/Tesla money and merged into SpaceX in February 2026 (flat thereafter; rebranded SpaceXAI in July 2026).
-      Part of OpenAI’s $122B March 2026 round remained unfunded as of August 2026 (SoftBank’s final $10B tranche due October).
-      Not inflation-adjusted.
+      Excludes debt, secondary sales, and unclosed rounds. xAI’s line fades after its absorption into SpaceX.
       Data &amp; sources: <a id="funding-sheet-link" href="https://docs.google.com/spreadsheets/d/1n0yQSwTY_XdVhTICZxieZCT50MUBLj0dEXDHBUcq6jk/edit">spreadsheet</a>.
     </p>
 
     <details>
-      <summary>Funding methodology and per-lab totals</summary>
+      <summary>Methodology &amp; data</summary>
       <div class="method" id="funding-method"></div>
     </details>
   </section>
@@ -1240,9 +1234,7 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
   const noteEl = document.getElementById("funding-note");
   const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
   const seriesColor = s => darkMQ.matches ? s.colorDark : s.colorLight;
-  const LOG_NOTE = "Log scale — equal vertical distances are equal multiples, so the smaller " +
-                   "Chinese rounds stay readable next to OpenAI's. Each line begins at that " +
-                   "lab's first funding round.";
+  const LOG_NOTE = "";
   let scale = "linear";
   let crossG = null;                        // current crosshair group, for outside-click hiding
 
@@ -1533,7 +1525,7 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       '<li><strong>OpenAI</strong> — part of the $122B March 2026 round was still unfunded in August 2026 ' +
       '(SoftBank’s final $10B tranche is due in October); we count it at close.</li>' +
       '<li><strong>xAI</strong> — includes money from X Corp, SpaceX and Tesla. xAI merged into SpaceX in ' +
-      'February 2026, so the line is flat afterwards.</li>' +
+      'February 2026 (rebranded SpaceXAI in July 2026), so the line is flat afterwards.</li>' +
       '<li><strong>DeepSeek</strong> — no external equity until the June 2026 round (¥51B). That round includes ' +
       '¥20B from founder Liang Wenfeng, and nearly all of it sits in a founder-controlled LP rather than direct equity.</li>' +
       '</ul>' +
