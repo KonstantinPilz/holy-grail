@@ -277,8 +277,9 @@
     <p class="fine" id="funding-fine">
       Primary equity capital in closed rounds (committed at close; disclosed tranche schedules stepped at their dates).
       Excludes debt, secondary share sales/tenders, and unclosed rounds.
+      Each line begins at that lab’s first round; DeepSeek was self-funded by High-Flyer until June 2026.
       DeepSeek’s June 2026 round (¥51B) includes ¥20B from founder Liang Wenfeng; nearly all of it sits in a founder-controlled LP rather than direct equity.
-      xAI includes X Corp/SpaceX/Tesla money and merged into SpaceX in February 2026 (flat thereafter).
+      xAI includes X Corp/SpaceX/Tesla money and merged into SpaceX in February 2026 (flat thereafter; rebranded SpaceXAI in July 2026).
       Part of OpenAI’s $122B March 2026 round remained unfunded as of August 2026 (SoftBank’s final $10B tranche due October).
       Not inflation-adjusted.
       Data &amp; sources: <a id="funding-sheet-link" href="https://docs.google.com/spreadsheets/d/1n0yQSwTY_XdVhTICZxieZCT50MUBLj0dEXDHBUcq6jk/edit">spreadsheet</a>.
@@ -1133,11 +1134,16 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
 
   const I0 = absIdx(FUNDING.xStart), I1 = absIdx(FUNDING.xEnd), SPAN = Math.max(1, I1 - I0);
   const FLOOR = 0.02;                       // $20M floor for the log scale
+  // Optical size trims: the marks have different aspect ratios and ink weights,
+  // so a flat 15px box makes the solid Z.ai square read large and the wide
+  // Anthropic and MiniMax marks read small.
+  const LOGO_SCALE = { zai: 0.86, anthropic: 1.10, minimax: 1.08, xai: 0.96 };
 
   const SERIES = FUNDING.series.map(s => {
     const i0 = Math.max(absIdx(s.start), I0);
     return {
-      name: s.name, country: s.country,
+      name: s.name, country: s.country, logo: s.logo || "",
+      fadeFrom: s.fadeFrom || null,
       colorLight: s.colorLight, colorDark: s.colorDark,
       total: s.total, baseline: s.baseline, i0: i0,
       steps: s.steps.map(t => ({ i: absIdx(t[0]), before: t[1], after: t[2] }))
@@ -1234,8 +1240,9 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
   const noteEl = document.getElementById("funding-note");
   const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
   const seriesColor = s => darkMQ.matches ? s.colorDark : s.colorLight;
-  const LOG_NOTE = "Log scale — lines along the bottom mean no external equity raised yet " +
-                   "(DeepSeek was self-funded by High-Flyer until June 2026).";
+  const LOG_NOTE = "Log scale — equal vertical distances are equal multiples, so the smaller " +
+                   "Chinese rounds stay readable next to OpenAI's. Each line begins at that " +
+                   "lab's first funding round.";
   let scale = "linear";
   let crossG = null;                        // current crosshair group, for outside-click hiding
 
@@ -1247,7 +1254,7 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
   function renderFunding() {
     const W = Math.min(el.clientWidth || 628, 660);
     const H = 405, T = 14, B = 32, L = 42;
-    const RIGHT = Math.max(100, Math.min(118, W - 300));
+    const RIGHT = Math.max(118, Math.min(142, W - 290));   // logo + label live here
     const plotW = Math.max(60, W - L - RIGHT);
     const plotH = H - T - B;
     const yBot = T + plotH, xRight = L + plotW;
@@ -1255,7 +1262,13 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
 
     const maxTotal = Math.max.apply(null, SERIES.map(s => s.total));
     const linMax = maxTotal * 1.05;
-    const logLo = Math.log10(FLOOR) - 0.14, logHi = Math.log10(maxTotal) + 0.06;
+    // Log axis spans the smallest value actually plotted (no series sits at
+    // zero any more — each line starts at its first round), so the decades in
+    // use are the decades shown.
+    const minPos = Math.min.apply(null, SERIES.map(s =>
+      s.baseline > 0 ? s.baseline : (s.steps.length ? s.steps[0].after : Infinity)));
+    const logLo = Math.log10(Math.max(minPos, FLOOR)) - 0.12;
+    const logHi = Math.log10(maxTotal) + 0.06;
     const x = i => L + (i - I0) / SPAN * plotW;
     const y = v => scale === "log"
       ? T + plotH * (1 - (Math.log10(Math.max(v, FLOOR)) - logLo) / (logHi - logLo))
@@ -1269,6 +1282,7 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
                     ", in billions of US dollars, " + scale + " scale",
     });
     el.appendChild(svg);                    // in the DOM first so text can be measured
+    const defs = svg.appendChild(mk("defs", {}));   // fade gradients for terminal tails
 
     // ---- y gridlines + labels ----
     let ticks;
@@ -1308,25 +1322,61 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       const color = dark ? s.colorDark : s.colorLight;
       const pts = [];
       let cur = s.baseline;
-      pts.push([x(s.i0), y(cur)]);
-      for (const t of s.steps) {
+      // Series with no pre-window capital start at their first round. On the
+      // linear axis we draw the opening rise out of zero, which reads as the
+      // lab entering the chart; on a log axis zero has no position, so those
+      // lines simply begin at the first round's value instead.
+      const fromZero = s.baseline === 0 && s.steps.length;
+      let rest = s.steps;
+      if (fromZero && scale === "log") {
+        cur = s.steps[0].after;
+        pts.push([x(s.steps[0].i), y(cur)]);
+        rest = s.steps.slice(1);
+      } else {
+        pts.push([x(s.i0), y(cur)]);
+      }
+      for (const t of rest) {
         pts.push([x(t.i), y(cur)]);         // horizontal…
         pts.push([x(t.i), y(t.after)]);     // …then vertical
         cur = t.after;
       }
       pts.push([x(I1), y(cur)]);
-      svg.appendChild(mk("path", {
-        d: "M" + pts.map(p => p[0].toFixed(2) + "," + p[1].toFixed(2)).join("L"),
-        fill: "none", stroke: color, "stroke-width": 2,
+      const dOf = a => "M" + a.map(p => p[0].toFixed(2) + "," + p[1].toFixed(2)).join("L");
+      const line = attrs => svg.appendChild(mk("path", Object.assign({
+        fill: "none", "stroke-width": 2,
         "stroke-linejoin": "round", "stroke-linecap": "round",
-      }));
+      }, attrs)));
+      // A series that can no longer raise (fadeFrom) keeps a solid line up to
+      // its final round, then its flat tail fades out toward the right edge —
+      // the run is a structural end, not a lull. Everything else draws solid.
+      const xFade = s.fadeFrom ? x(Math.max(absIdx(s.fadeFrom), I0)) : null;
+      if (xFade !== null && xFade < x(I1) - 0.5) {
+        let k = 0;                                  // last vertex at//before the fade point,
+        for (let j = 0; j < pts.length; j++) {      // i.e. the top of the final riser, so the
+          if (pts[j][0] <= xFade + 0.01) k = j;     // last round itself stays solid
+        }
+        const gid = "fund-fade-" + s.logo + "-" + (dark ? "d" : "l") + "-" + scale;
+        const g = mk("linearGradient", { id: gid, gradientUnits: "userSpaceOnUse",
+                                         x1: xFade.toFixed(2), y1: 0, x2: x(I1).toFixed(2), y2: 0 });
+        g.appendChild(mk("stop", { offset: "0", "stop-color": color, "stop-opacity": "1" }));
+        g.appendChild(mk("stop", { offset: "1", "stop-color": color, "stop-opacity": "0.2" }));
+        defs.appendChild(g);
+        line({ d: dOf(pts.slice(0, k + 1)), stroke: color });
+        line({ d: dOf(pts.slice(k)), stroke: "url(#" + gid + ")" });
+      } else {
+        line({ d: dOf(pts), stroke: color });
+      }
       for (const t of s.steps) {
         svg.appendChild(mk("circle", { cx: x(t.i), cy: y(t.after), r: 2.5, fill: color }));
       }
     }
 
     // ---- direct end labels, pushed apart, with leader lines where they moved ----
-    const GAP = 13, topLim = T + 5, botLim = yBot;
+    const LOGO = 14, logoX = xRight + 10;
+    const labelX = logoX + LOGO + 5, avail = W - labelX - 2;
+    // GAP has to clear the logo box, not just the text, or the marks collide
+    // where the small series bunch up.
+    const GAP = LOGO + 3, topLim = T + 5, botLim = yBot + 10;
     const ends = SERIES.map(s => ({ s: s, color: dark ? s.colorDark : s.colorLight, lineY: y(s.total) }))
       .sort((a, b) => a.lineY - b.lineY);
     ends.forEach((e, k) => {
@@ -1336,7 +1386,6 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       const lim = k === ends.length - 1 ? botLim : ends[k + 1].ly - GAP;
       ends[k].ly = Math.max(topLim, Math.min(ends[k].ly, lim));
     }
-    const labelX = xRight + 10, avail = W - labelX - 2;
     const surface = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
     const texts = [];
     for (const e of ends) {
@@ -1348,6 +1397,20 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
              "L" + (xRight + 7) + "," + e.ly.toFixed(2) +
              "L" + (xRight + 9) + "," + e.ly.toFixed(2),
         }));
+      }
+      // Official logo mark, self-hosted, per-theme file (the monochrome marks
+      // ship a flipped variant rather than being CSS-inverted).
+      if (e.s.logo) {
+        const sc = LOGO_SCALE[e.s.logo] || 1, sz = LOGO * sc;
+        const href = "logos/" + e.s.logo + "-" + (dark ? "dark" : "light") + ".svg";
+        const im = mk("image", {
+          x: (logoX + (LOGO - sz) / 2).toFixed(2), y: (e.ly - sz / 2).toFixed(2),
+          width: sz.toFixed(2), height: sz.toFixed(2),
+          preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true",
+        });
+        im.setAttribute("href", href);
+        im.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", href);
+        svg.appendChild(im);
       }
       // leader lines stay on the palette colour; only the text is re-inked
       const t = mk("text", { class: "fund-label", x: labelX, y: e.ly + 4,
@@ -1474,6 +1537,34 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       '<li><strong>DeepSeek</strong> — no external equity until the June 2026 round (¥51B). That round includes ' +
       '¥20B from founder Liang Wenfeng, and nearly all of it sits in a founder-controlled LP rather than direct equity.</li>' +
       '</ul>' +
+      '<h4>Reading the lines</h4>' +
+      '<p>Every line is a step: it holds flat between rounds and jumps on the month a round closed. ' +
+      'Each begins at that lab’s first round rather than at the left edge, so the start of a line is ' +
+      'the start of its fundraising, not the start of the window. A <strong>faded tail means the lab is ' +
+      'post-acquisition and can raise no further</strong> — xAI’s line fades out after the March 2026 ' +
+      'Tesla settlement because it had been absorbed into SpaceX, so its flat run to the right edge is ' +
+      'a structural end rather than a quiet spell. No other series is faded.</p>' +
+      '<h4>Colors and logos</h4>' +
+      '<p>Each line carries its lab’s own brand color and official logo mark where one exists. Four of the seven ' +
+      'brands are monochrome — OpenAI, xAI, Kimi (Moonshot) and Z.ai all use black-and-white marks — and only one ' +
+      'series can be black, so three lines carry an assigned hue instead, kept inside the brand’s own color family ' +
+      'where it has one:</p>' +
+      '<ul>' +
+      '<li><strong>OpenAI</strong> keeps brand black (white on the dark theme). ' +
+      '<strong>xAI’s</strong> mark is also black, so its line is a neutral gray to stay distinct from OpenAI’s.</li>' +
+      '<li><strong>Anthropic</strong> uses <a href="https://www.anthropic.com/press-kit">Clay #D97757</a> from its press kit. ' +
+      '<strong>DeepSeek</strong> uses #4D6BFE, the fill on its own logo file.</li>' +
+      '<li><strong>MiniMax’s</strong> mark is a magenta-to-orange gradient; the line takes the magenta end and the logo ' +
+      'carries the real gradient. <strong>Moonshot</strong> and <strong>Z.ai</strong> are assigned — Moonshot from Kimi’s ' +
+      'blue accent dot, Z.ai a violet next to Zhipu’s platform blue — both moved far enough to stay separable from ' +
+      'DeepSeek’s blue.</li>' +
+      '</ul>' +
+      '<p>Because brand colors are not chosen for contrast, they are not the only way to tell the lines apart: every ' +
+      'series is named and valued at the right-hand end next to its logo, and the hover tooltip lists all of them. ' +
+      'Label text is re-inked at render time — same hue, lightness shifted — so it clears a 4.5:1 contrast ratio ' +
+      'against the page in both themes, and no two lines are closer than a CIEDE2000 distance of 15.</p>' +
+      '<p>Logos are the companies’ official marks, self-hosted and unmodified apart from the light/dark color flip ' +
+      'on the monochrome ones. They are trademarks of their owners, used here to identify the subject of the data.</p>' +
       '<p>Per-round sources live in the companion spreadsheet linked above.</p>';
   }
 
