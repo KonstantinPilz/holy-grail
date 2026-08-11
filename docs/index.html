@@ -330,8 +330,8 @@
     <p class="mode-note" id="capex-note"></p>
 
     <p class="fine" id="capex-fine">
-      US series are cash capex from SEC filings; Chinese series are company filings where public, press/analyst
-      estimates for ByteDance, and audited PP&amp;E additions for Huawei (mostly manufacturing, not AI datacenters).
+      US series are cash capex from SEC filings; Chinese series are company filings, with press/analyst
+      estimates for ByteDance.
       State-backed = est. computing capex of state-controlled entities (three telcos + local computing centers);
       mostly facilities and power rather than chips — see methodology.
       Data &amp; sources: <a id="capex-sheet-link" href="https://docs.google.com/spreadsheets/d/1AZ859y7veVoI0r_NPzKrhWOB0YX7uP_nGpeyNaUK3w8/edit">spreadsheet</a>.
@@ -2018,9 +2018,10 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
       'dollars — all capex, not only AI or datacenter spending. The one exception is <strong>State-backed</strong>, ' +
       'which counts only the computing capex of Chinese state-controlled entities, not their total capex — for ' +
       'the carriers that means excluding 5G, which is the bulk of what they spend. Points sit on calendar years and are joined by straight segments; nothing is interpolated ' +
-      'between them. For legibility the chart shows the four largest companies per country by capex; ' +
-      'Oracle ($77B 2026E), CoreWeave ($30B) and Baidu ($3.4B) are omitted here but fully covered in the ' +
-      'spreadsheet. Data as of ' + CAPEX.asOf + '.</p>' +
+      'between them. For legibility the chart shows only the largest spenders; Oracle ($77B 2026E), ' +
+      'CoreWeave ($30B), Huawei ($7.3B — audited PP&amp;E additions, mostly fab and campus construction rather ' +
+      'than AI datacenters) and Baidu ($3.4B) are omitted here but fully covered in the spreadsheet. ' +
+      'Data as of ' + CAPEX.asOf + '.</p>' +
       '<div class="tablewrap"><table><thead><tr><th>Company</th><th>2025</th>' +
       '<th>2026 estimate</th><th>2026 range</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<h4>Estimate convention</h4>' +
