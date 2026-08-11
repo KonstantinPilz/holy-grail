@@ -219,6 +219,19 @@
       <span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px;background:var(--bar-cn)"></span>Chinese labs (internal model)</p>
       <div id="labs-chart"></div>
       <p class="fine" id="labs-fine"></p>
+      <!-- forecast2026 -->
+      <div id="forecast2026" style="margin-top:28px;border-top:1px solid var(--border);padding-top:18px">
+        <h3 style="font-size:18px;margin:0 0 4px;line-height:1.25">EOY-2026 forecast</h3>
+        <p class="subtitle"><strong id="forecast2026-test"></strong>Forecast medians with 80% CIs from the EOY-2026 model (internal Epoch-preview + TrendForce-derived; hence locked).</p>
+        <p style="color:var(--text-2);font-size:12px;margin:6px 0 0;line-height:1.5"><span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;background:var(--bar)"></span>US developers
+        <span class="sw" style="display:inline-block;width:10px;height:10px;border-radius:2px;margin:0 4px 0 10px;vertical-align:-1px;background:var(--bar-cn)"></span>Chinese developers</p>
+        <div id="forecast2026-chart"></div>
+        <h4 style="font-size:15px;margin:18px 0 2px;line-height:1.25">Chinese developers (zoom)</h4>
+        <div id="forecast2026-cn-chart"></div>
+        <p class="fine" style="margin-top:2px">Same data, magnified scale.</p>
+        <p class="fine" id="forecast2026-status"></p>
+      </div>
+      <!-- /forecast2026 -->
     </div>
   </section>
 
@@ -508,6 +521,130 @@ async function labsDecrypt(pw, ct) {
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: labsB64(ct.iv) }, key, labsB64(ct.ct));
   return JSON.parse(new TextDecoder().decode(plain));
 }
+
+// <!-- forecast2026 -->
+let forecast2026Payload = null;
+async function forecast2026FetchCT() {
+  const resp = await fetch("forecast2026_data.js", { cache: "no-cache" });
+  if (!resp.ok) throw new Error("forecast fetch failed");
+  const text = await resp.text();
+  return JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+}
+async function forecast2026Load(pw) {
+  const status = document.getElementById("forecast2026-status");
+  try {
+    forecast2026Payload = await labsDecrypt(pw, await forecast2026FetchCT());
+    status.textContent = "Color = probability density (gamma 0.6); ticks mark p10/p90. Locked internal forecast.";
+    renderForecast2026();
+  } catch (error) {
+    forecast2026Payload = null;
+    document.getElementById("forecast2026-chart").innerHTML = "";
+    document.getElementById("forecast2026-cn-chart").innerHTML = "";
+    status.textContent = "Forecast data unavailable.";
+  }
+}
+function renderForecast2026Panel(el, labs, panelKey, watermarkText) {
+  const W = Math.min(el.clientWidth || 628, 660);
+  const ROWH = 40, BARH = 18, LEFTL = 142, RIGHTL = 12, TOPL = 24, BOTL = 6;
+  const H = TOPL + labs.length * ROWH + BOTL;
+  const plotW = W - LEFTL - RIGHTL;
+  const maxX = Math.max(...labs.map(lab => lab.dist.x1)) * 1.02;
+  const x = value => LEFTL + value / maxX * plotW;
+  el.innerHTML = "";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "100%"); svg.setAttribute("height", H);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", `${panelKey === "cn" ? "Chinese " : ""}EOY-2026 AI developer compute forecasts in GB300 equivalents with 80 percent confidence intervals`);
+  el.appendChild(svg);
+  const step = niceStep(maxX);
+  for (let value = 0; value <= maxX; value += step) {
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("class", value === 0 ? "zero-line" : "grid-line");
+    line.setAttribute("x1", x(value)); line.setAttribute("x2", x(value));
+    line.setAttribute("y1", TOPL - 4); line.setAttribute("y2", H - BOTL);
+    svg.appendChild(line);
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const isLast = value + step > maxX;
+    label.setAttribute("class", isLast ? "axis-unit" : "axis-label");
+    label.setAttribute("x", isLast ? Math.min(x(value) + 30, W) : x(value));
+    label.setAttribute("y", TOPL - 9);
+    label.setAttribute("text-anchor", value === 0 ? "start" : isLast ? "end" : "middle");
+    label.textContent = value === 0 ? "0" : fmtTick(value) + (isLast ? " GB300e" : "");
+    svg.appendChild(label);
+  }
+  const rootStyle = getComputedStyle(document.documentElement);
+  labs.forEach((lab, index) => {
+    const yMid = TOPL + index * ROWH + ROWH / 2;
+    const color = rootStyle.getPropertyValue(lab.country === "cn" ? "--bar-cn" : "--bar").trim();
+    const xL = x(lab.dist.x0), xR = x(lab.dist.x1);
+    const gradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+    const gradientId = `forecast2026-${panelKey}-${index}`;
+    gradient.setAttribute("id", gradientId); gradient.setAttribute("gradientUnits", "userSpaceOnUse");
+    gradient.setAttribute("x1", xL); gradient.setAttribute("x2", xR);
+    gradient.setAttribute("y1", 0); gradient.setAttribute("y2", 0);
+    for (let k = 0; k <= 80; k += 2) {
+      const stop = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+      stop.setAttribute("offset", (k / 80).toFixed(3)); stop.setAttribute("stop-color", color);
+      stop.setAttribute("stop-opacity", Math.pow(lab.dist.d[k], 0.6).toFixed(3));
+      gradient.appendChild(stop);
+    }
+    svg.appendChild(gradient);
+    const bar = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    bar.setAttribute("x", xL); bar.setAttribute("width", Math.max(2, xR - xL));
+    bar.setAttribute("y", yMid - BARH / 2); bar.setAttribute("height", BARH);
+    bar.setAttribute("fill", `url(#${gradientId})`); svg.appendChild(bar);
+    for (const percentile of [lab.p10, lab.p90]) {
+      const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      tick.setAttribute("class", "pct-tick");
+      tick.setAttribute("x1", x(percentile)); tick.setAttribute("x2", x(percentile));
+      tick.setAttribute("y1", yMid - BARH / 2 - 3); tick.setAttribute("y2", yMid + BARH / 2 + 3);
+      svg.appendChild(tick);
+    }
+    const median = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    median.setAttribute("class", "median-line");
+    median.setAttribute("x1", x(lab.median)); median.setAttribute("x2", x(lab.median));
+    median.setAttribute("y1", yMid - BARH / 2); median.setAttribute("y2", yMid + BARH / 2);
+    svg.appendChild(median);
+    const name = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    name.setAttribute("class", "owner-label"); name.setAttribute("x", LEFTL - 8);
+    name.setAttribute("y", yMid + 4);
+    name.setAttribute("text-anchor", "end");
+    name.textContent = lab.name; svg.appendChild(name);
+    const value = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    value.setAttribute("class", "value-label");
+    value.setAttribute("x", Math.max(x(lab.median), LEFTL + 14));
+    value.setAttribute("y", yMid + BARH / 2 + 11);
+    value.setAttribute("text-anchor", "middle"); value.textContent = fmtM(lab.median);
+    svg.appendChild(value);
+  });
+  if (watermarkText) {
+    const watermark = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    watermark.setAttribute("x", LEFTL + plotW / 2); watermark.setAttribute("y", H / 2);
+    watermark.setAttribute("text-anchor", "middle"); watermark.setAttribute("fill", "var(--text)");
+    watermark.setAttribute("font-size", labs.length > 5 ? "48" : "36"); watermark.setAttribute("font-weight", "700");
+    watermark.setAttribute("opacity", "0.10");
+    watermark.setAttribute("transform", `rotate(-18 ${LEFTL + plotW / 2} ${H / 2})`);
+    watermark.textContent = watermarkText; svg.appendChild(watermark);
+  }
+}
+function renderForecast2026() {
+  if (!forecast2026Payload) return;
+  document.getElementById("forecast2026-test").textContent = forecast2026Payload.test ? "TEST DATA — " : "";
+  renderForecast2026Panel(
+    document.getElementById("forecast2026-chart"),
+    forecast2026Payload.labs,
+    "all",
+    forecast2026Payload.watermark
+  );
+  renderForecast2026Panel(
+    document.getElementById("forecast2026-cn-chart"),
+    forecast2026Payload.labs.filter(lab => lab.country === "cn"),
+    "cn",
+    forecast2026Payload.watermark
+  );
+}
+// <!-- /forecast2026 -->
 
 const labsFmt = v => Math.round(v).toLocaleString("en-US");
 let labsMode = "fp8";
@@ -917,6 +1054,7 @@ async function labsUnlock(pw, remember) {
       renderTF();
     }
     renderLabs();
+    await forecast2026Load(pw); // forecast2026
   } catch (e) {
     localStorage.removeItem("labs_pw");
     document.getElementById("labs-err").textContent = "Wrong password.";
@@ -934,6 +1072,7 @@ document.getElementById("labs-mode-select").addEventListener("change", ev => {
 const labsSaved = localStorage.getItem("labs_pw");
 if (labsSaved) labsUnlock(labsSaved, false);
 window.addEventListener("resize", renderLabs);
+window.addEventListener("resize", renderForecast2026); // forecast2026
 </script>
 </body>
 </html>
