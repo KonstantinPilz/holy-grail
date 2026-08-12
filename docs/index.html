@@ -194,6 +194,28 @@
   #tooltip .cx-rng { color: var(--text-3); font-weight: 400; }
 </style>
 <!-- /capex -->
+<!-- arr -->
+<style>
+  /* ---- AI lab revenue section ---- */
+  #arr { margin-top: 34px; border-top: 1px solid var(--border); padding-top: 20px; }
+  #arr h2 { font-size: 18px; margin: 0 0 4px; font-weight: 700; line-height: 1.25; }
+  #arr-chart { width: 100%; margin-top: 6px; }
+  #arr .arr-label { font-size: 11.5px; font-weight: 700; }
+  #arr .arr-leader { fill: none; stroke-width: 1; opacity: .5; }
+  /* the run from a series' last datum to the label gutter: same leader, dotted,
+     so a stale series reads as "no newer figure" rather than as a flat line */
+  #arr .arr-tail { fill: none; stroke-width: 1; opacity: .4; stroke-dasharray: 2,3; }
+  #arr .arr-cross { stroke: var(--text-3); stroke-width: 1; shape-rendering: crispEdges; }
+  #arr .arr-tick { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+  #arr .arr-dagger { font-size: 9.5px; font-weight: 700; }
+  #tooltip .asw { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  #tooltip td.arr-name { color: var(--text); white-space: nowrap; }
+  /* the as-of column carries the scope caveats, which are long enough to need
+     wrapping inside the tooltip's 300px box */
+  #tooltip td.arr-as { color: var(--text-3); font-weight: 400; font-variant-numeric: normal; }
+  #tooltip .arr-note { color: var(--text-3); margin: 5px 0 0; font-size: 11px; line-height: 1.35; }
+</style>
+<!-- /arr -->
 </head>
 <body>
 <div class="wrap">
@@ -337,6 +359,27 @@
     <div class="method" id="capex-method" style="display:none" aria-hidden="true"></div>
   </section>
   <!-- /capex -->
+
+  <!-- arr -->
+  <section id="arr">
+    <header>
+      <div>
+        <h2>AI lab revenue, 2023–2026</h2>
+        <p class="subtitle">Annualized revenue over time, US$ billions. Filled points are company or filing
+          figures; hollow points are press-reported. Log scale.</p>
+      </div>
+    </header>
+    <div id="arr-chart"></div>
+
+    <p class="fine" id="arr-fine">
+      Annualized run rates where reported (typically last month × 12); audited annual revenue for MiniMax and
+      Z.ai’s pre-2026 points — bases differ and are marked per point. Z.ai’s 2026 points cover its API business
+      only. DeepSeek’s 2025 point is the company’s theoretical ceiling at list prices, not revenue. OpenAI’s last
+      reported figure is February 2026.
+      Data &amp; sources: <a id="arr-sheet-link" href="https://docs.google.com/spreadsheets/d/1XnD7OjzJExUS4sw6GCYf_JD82Yf9XuE710Zvs_zrzFQ/edit">spreadsheet</a>.
+    </p>
+  </section>
+  <!-- /arr -->
 
   <footer>
     Chart: a team of Konstantin’s Claudes ·
@@ -2157,5 +2200,422 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
 })();
 </script>
 <!-- /capex -->
+<!-- arr -->
+<script src="arr_data.js?v=1"></script>
+<script>
+(function () {
+  "use strict";
+  if (typeof ARR === "undefined" || !ARR.series) return;
+
+  const NS = "http://www.w3.org/2000/svg";
+  const mk = (tag, attrs) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  const MONTHS = ["January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December"];
+  // Absolute month index so arithmetic across years is trivial.
+  const absIdx = s => { const p = s.split("-"); return (+p[0]) * 12 + (+p[1]) - 1; };
+  const monthLong = i => MONTHS[i % 12] + " " + Math.floor(i / 12);
+  const monthShort = i => MONTHS[i % 12].slice(0, 3) + " " + Math.floor(i / 12);
+
+  const I0 = absIdx(ARR.xStart), I1 = absIdx(ARR.xEnd), SPAN = Math.max(1, I1 - I0);
+  // Optical size trims: the marks have different aspect ratios and ink weights,
+  // so a flat 14px box makes the solid Z.ai square read large and the wide
+  // Anthropic and MiniMax marks read small. Same trims as the funding chart.
+  const LOGO_SCALE = { zai: 0.86, anthropic: 1.10, minimax: 1.08, xai: 0.96 };
+
+  const SERIES = ARR.series.map(s => {
+    const pts = s.points.map(p => ({
+      i: absIdx(p.ym), v: p.v, solid: !!p.solid, isolated: !!p.isolated,
+      basis: p.basis || "", scope: p.scope || "", tier: p.tier || "",
+    })).sort((a, b) => a.i - b.i);
+    // Isolated points are measured on a basis that does not belong on the same
+    // line as the rest of the series (DeepSeek's list-price ceiling, Moonshot's
+    // consumer-only figure), so they carry a marker and no connecting segment.
+    const conn = pts.filter(p => !p.isolated);
+    return {
+      name: s.name, country: s.country, logo: s.logo || "",
+      colorLight: s.colorLight, colorDark: s.colorDark,
+      endNote: s.endNote || null, points: pts, conn: conn,
+      last: conn.length ? conn[conn.length - 1] : pts[pts.length - 1],
+    };
+  });
+
+  const r1 = v => Math.round(v * 10) / 10;
+  const fmtM = v => {
+    const m = v * 1000;
+    return "$" + (m >= 10 ? String(Math.round(m)) : String(Math.round(m * 10) / 10)) + "M";
+  };
+  // Below $1B the figures read as millions; above it, billions with one decimal
+  // until the number is big enough that the decimal is noise.
+  const fmtVal = v => v < 1 ? fmtM(v)
+    : "$" + (v >= 10 ? String(Math.round(v)) : r1(v).toFixed(1)) + "B";
+  const fmtAxis = v => v < 1 ? "$" + Math.round(v * 1000) + "M" : "$" + Math.round(v) + "B";
+
+  // Tier strings are compound ("press+official-retro"); the leading token is the
+  // strongest thing that can be said about where the number came from.
+  const TIERS = { press: "press", official: "official", filing: "filing",
+                  leak: "leak", analyst: "analyst" };
+  const tierWord = t => {
+    const head = String(t).split("+")[0].split("-")[0].trim().toLowerCase();
+    return TIERS[head] || "press";
+  };
+  // A point whose basis or scope is narrower than "this company's revenue" says
+  // so in the tooltip, because the number alone would be read as the wrong thing.
+  function qualifier(p) {
+    if (/ceiling/i.test(p.basis)) return "theoretical ceiling at list prices";
+    const m = /^(.*?)\s*ONLY\s*$/.exec(p.scope);
+    if (m) return m[1] + " only";
+    return null;
+  }
+
+  // ---- accessible label ink ----
+  // Brand colours are not chosen for text contrast (Moonshot's #0594D1 is 3.6:1
+  // on white). Lines keep the palette colour; the end LABEL is redrawn with the
+  // same hue and saturation and only its lightness moved until it clears 4.5:1
+  // against the surface. Computed at runtime so a regenerated palette cannot
+  // silently go unreadable. Same machinery as the funding and capex charts.
+  const inkCache = {};
+  function hexRgb(h) {
+    h = String(h).trim().replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  const rgbHex = c => "#" + c.map(v => Math.max(0, Math.min(255, Math.round(v)))
+    .toString(16).padStart(2, "0")).join("");
+  const chan = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const lum = c => 0.2126 * chan(c[0]) + 0.7152 * chan(c[1]) + 0.0722 * chan(c[2]);
+  function ratio(a, b) {
+    const x = lum(a), y = lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
+  function toHsl(c) {
+    const r = c[0] / 255, g = c[1] / 255, b = c[2] / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    if (mx === mn) return [0, 0, l];
+    const d = mx - mn;
+    const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    let h;
+    if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0));
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    return [h * 60, s, l];
+  }
+  function fromHsl(h, s, l) {
+    h = ((h % 360) + 360) % 360 / 360;
+    if (s === 0) return [l * 255, l * 255, l * 255];
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+    const f = t => {
+      t = (t % 1 + 1) % 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+  }
+  function labelInk(color, surface) {
+    const key = color + "|" + surface;
+    if (inkCache[key]) return inkCache[key];
+    let out = color;
+    const bg = hexRgb(surface), base = hexRgb(color);
+    // 4.6 rather than a bare 4.5 so no label sits exactly on the threshold
+    if (bg && base && ratio(base, bg) < 4.6) {
+      const hsl = toHsl(base), step = lum(bg) > 0.5 ? -0.005 : 0.005;
+      let l = hsl[2];
+      for (let k = 0; k < 240; k++) {
+        l += step;
+        if (l < 0 || l > 1) break;
+        const c = fromHsl(hsl[0], hsl[1], l);
+        if (ratio(c, bg) >= 4.6) { out = rgbHex(c); break; }
+      }
+    }
+    inkCache[key] = out;
+    return out;
+  }
+
+  const el = document.getElementById("arr-chart");
+  const tipEl = document.getElementById("tooltip");
+  const darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
+  let crossG = null;                        // current crosshair group, for outside-click hiding
+
+  function hideArr() {
+    if (crossG) crossG.style.display = "none";
+    tipEl.style.display = "none";
+  }
+
+  function renderArr() {
+    const W = Math.min(el.clientWidth || 628, 660);
+    const H = 410, T = 14, B = 32, L = 46;
+    const RIGHT = Math.max(118, Math.min(142, W - 290));   // logo + label live here
+    const plotW = Math.max(60, W - L - RIGHT);
+    const plotH = H - T - B;
+    const yBot = T + plotH, xRight = L + plotW;
+    const dark = darkMQ.matches;
+
+    const vals = [];
+    for (const s of SERIES) for (const p of s.points) vals.push(p.v);
+    const maxV = Math.max.apply(null, vals), minV = Math.min.apply(null, vals);
+    // Revenue spans about four decades here ($3M to $47B), so the axis is log
+    // only — a linear axis would put five of the seven labs on the floor.
+    const logLo = Math.log10(minV) - 0.10, logHi = Math.log10(maxV) + 0.06;
+    const x = i => L + (i - I0) / SPAN * plotW;
+    const y = v => T + plotH * (1 - (Math.log10(Math.max(v, 1e-6)) - logLo) / (logHi - logLo));
+
+    el.innerHTML = "";
+    const svg = mk("svg", {
+      viewBox: "0 0 " + W + " " + H, width: "100%", height: H, role: "img",
+      "aria-label": "Annualized revenue of seven US and Chinese AI labs, " +
+                    ARR.xStart.slice(0, 4) + " to " + ARR.xEnd.slice(0, 4) +
+                    ", in billions of US dollars, log scale. Filled points are company or " +
+                    "filing figures; hollow points are press-reported.",
+    });
+    el.appendChild(svg);                    // in the DOM first so text can be measured
+    const defs = svg.appendChild(mk("defs", {}));
+    // Z.ai's first annual figure predates the window; its line enters from the
+    // left edge rather than being dropped, so the drawing layer is clipped.
+    const clipId = "arr-clip";
+    const cp = mk("clipPath", { id: clipId });
+    cp.appendChild(mk("rect", { x: L, y: T - 6, width: plotW, height: plotH + 12 }));
+    defs.appendChild(cp);
+
+    // ---- y gridlines + labels: one per decade, in $M below $1B ----
+    for (const v of [0.001, 0.01, 0.1, 1, 10, 100]) {
+      const lv = Math.log10(v);
+      if (lv < logLo || lv > logHi) continue;
+      const yy = y(v);
+      svg.appendChild(mk("line", { class: "grid-line", x1: L, x2: xRight, y1: yy, y2: yy }));
+      const t = mk("text", { class: "axis-label", x: L - 6, y: yy + 3.5, "text-anchor": "end" });
+      t.textContent = fmtAxis(v);
+      svg.appendChild(t);
+    }
+    svg.appendChild(mk("line", { class: "zero-line", x1: L, x2: xRight, y1: yBot, y2: yBot }));
+
+    // ---- x ticks: calendar years ----
+    // The first label is left-aligned to the axis rather than centred on its
+    // tick, where it would hang over the y-axis value column.
+    for (let yr = Math.ceil(I0 / 12); yr * 12 <= I1; yr++) {
+      const xi = x(yr * 12);
+      if (xi < L - 0.5) continue;
+      svg.appendChild(mk("line", { class: "arr-tick", x1: xi, x2: xi, y1: yBot, y2: yBot + 4 }));
+      const t = mk("text", { class: "axis-label", x: xi, y: yBot + 17,
+                             "text-anchor": xi < L + 1 ? "start" : "middle" });
+      t.textContent = yr;
+      svg.appendChild(t);
+    }
+
+    // ---- one line per lab, straight between reported points ----
+    const surface = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+    // Markers crowd at narrow widths — the points are months apart and the plot
+    // is under 200px wide on a phone — so they scale with the plot.
+    const RS = plotW < 260 ? 3.1 : 3.9, RH = plotW < 260 ? 3.5 : 4.3;
+    const gLines = svg.appendChild(mk("g", { "clip-path": "url(#" + clipId + ")" }));
+    for (const s of SERIES) {
+      const color = dark ? s.colorDark : s.colorLight;
+      if (s.conn.length > 1) {
+        gLines.appendChild(mk("path", {
+          d: "M" + s.conn.map(p => x(p.i).toFixed(2) + "," + y(p.v).toFixed(2)).join("L"),
+          fill: "none", stroke: color, "stroke-width": 2,
+          "stroke-linejoin": "round", "stroke-linecap": "round",
+        }));
+      }
+      for (const p of s.points) {
+        if (p.i < I0 || p.i > I1) continue;
+        if (p.solid) {
+          svg.appendChild(mk("circle", { cx: x(p.i), cy: y(p.v), r: RS, fill: color }));
+        } else {                            // press-reported: open ring on the page surface
+          svg.appendChild(mk("circle", { cx: x(p.i), cy: y(p.v), r: RH, fill: surface || "#ffffff",
+                                         stroke: color, "stroke-width": 2 }));
+        }
+        // The one point on the chart that is not a revenue figure at all gets a
+        // dagger pointing at the note under the chart.
+        if (/ceiling/i.test(p.basis)) {
+          const d = mk("text", { class: "arr-dagger", x: (x(p.i) + RS + 2.5).toFixed(2),
+                                 y: (y(p.v) - RS - 1).toFixed(2),
+                                 fill: labelInk(color, surface) });
+          d.textContent = "†";
+          svg.appendChild(d);
+        }
+      }
+    }
+
+    // ---- direct end labels, pushed apart, with leader lines where they moved ----
+    const LOGO = 14, logoX = xRight + 10;
+    const labelX = logoX + LOGO + 5, avail = W - labelX - 2;
+    // GAP has to clear the logo box, not just the text: the bottom five labs sit
+    // inside one decade of the log axis and would otherwise stack on top of
+    // each other.
+    const GAP = LOGO + 3, topLim = T + 5, botLim = yBot + 12;
+    const ends = SERIES.map(s => ({
+      s: s, color: dark ? s.colorDark : s.colorLight,
+      lineY: y(s.last.v), lineX: x(s.last.i),
+    })).sort((a, b) => a.lineY - b.lineY);
+    ends.forEach((e, k) => {
+      e.ly = k === 0 ? Math.max(e.lineY, topLim) : Math.max(e.lineY, ends[k - 1].ly + GAP);
+    });
+    for (let k = ends.length - 1; k >= 0; k--) {
+      const lim = k === ends.length - 1 ? botLim : ends[k + 1].ly - GAP;
+      ends[k].ly = Math.max(topLim, Math.min(ends[k].ly, lim));
+    }
+    const texts = [];
+    for (const e of ends) {
+      // Labs report on their own schedules, so the last point is rarely at the
+      // right edge — xAI's is eleven months short of it. A dotted run carries
+      // the series from its last figure to the label instead of a flat line,
+      // which would claim the revenue stood still.
+      if (e.lineX < xRight - 2) {
+        svg.appendChild(mk("path", {
+          class: "arr-tail", stroke: e.color,
+          d: "M" + e.lineX.toFixed(2) + "," + e.lineY.toFixed(2) +
+             "L" + xRight.toFixed(2) + "," + e.lineY.toFixed(2),
+        }));
+      }
+      if (Math.abs(e.ly - e.lineY) > 2.5) {
+        svg.appendChild(mk("path", {
+          class: "arr-leader", stroke: e.color,
+          d: "M" + xRight + "," + e.lineY.toFixed(2) +
+             "L" + (xRight + 4) + "," + e.lineY.toFixed(2) +
+             "L" + (xRight + 7) + "," + e.ly.toFixed(2) +
+             "L" + (xRight + 9) + "," + e.ly.toFixed(2),
+        }));
+      }
+      // Official logo mark, self-hosted, per-theme file (the monochrome marks
+      // ship a flipped variant rather than being CSS-inverted).
+      if (e.s.logo) {
+        const sc = LOGO_SCALE[e.s.logo] || 1, sz = LOGO * sc;
+        const href = "logos/" + e.s.logo + "-" + (dark ? "dark" : "light") + ".svg";
+        const im = mk("image", {
+          x: (logoX + (LOGO - sz) / 2).toFixed(2), y: (e.ly - sz / 2).toFixed(2),
+          width: sz.toFixed(2), height: sz.toFixed(2),
+          preserveAspectRatio: "xMidYMid meet", "aria-hidden": "true",
+        });
+        im.setAttribute("href", href);
+        im.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", href);
+        svg.appendChild(im);
+      }
+      // leader lines stay on the palette colour; only the text is re-inked
+      const t = mk("text", { class: "arr-label", x: labelX, y: e.ly + 4,
+                             fill: labelInk(e.color, surface) });
+      t.textContent = e.s.name + " " + fmtVal(e.s.last.v);
+      svg.appendChild(t);
+      texts.push(t);
+    }
+    // Shrink to fit rather than let a label run off the right edge.
+    let widest = 0;
+    for (const t of texts) {
+      const w = t.getComputedTextLength ? t.getComputedTextLength() : 0;
+      if (w > widest) widest = w;
+    }
+    if (widest > avail && avail > 0) {
+      const fs = Math.max(9, 11.5 * avail / widest);
+      // inline style, not a presentation attribute — the .arr-label rule would win otherwise
+      for (const t of texts) t.style.fontSize = fs.toFixed(2) + "px";
+    }
+
+    // ---- crosshair + hover layer ----
+    const cg = mk("g", { "pointer-events": "none" });
+    cg.style.display = "none";
+    const cline = mk("line", { class: "arr-cross", y1: T, y2: yBot });
+    cg.appendChild(cline);
+    // The halo sits on the datum the tooltip row is quoting, not under the
+    // cursor: between reports there is no value to point at.
+    const halos = SERIES.map(s => {
+      const c = mk("circle", { r: RH + 2.8, fill: "none",
+                               stroke: dark ? s.colorDark : s.colorLight,
+                               "stroke-width": 1.5, opacity: .6 });
+      cg.appendChild(c);
+      return c;
+    });
+    svg.appendChild(cg);
+    crossG = cg;
+
+    // Most recent connected point at or before the hovered month, plus an
+    // isolated point only when the crosshair is on its exact month.
+    function readAt(s, i) {
+      let cur = null;
+      for (const p of s.conn) { if (p.i <= i) cur = p; else break; }
+      const iso = s.points.find(p => p.isolated && p.i === i);
+      return { p: iso || cur, iso: !!iso };
+    }
+
+    function idxFromClientX(clientX) {
+      const r = svg.getBoundingClientRect();
+      const px = (clientX - r.left) * (W / (r.width || W));
+      const i = Math.round((px - L) / plotW * SPAN) + I0;
+      return Math.max(I0, Math.min(I1, i));
+    }
+    function showArr(clientX, clientY) {
+      const i = idxFromClientX(clientX);
+      const xi = x(i);
+      cline.setAttribute("x1", xi); cline.setAttribute("x2", xi);
+      const rows = [];
+      SERIES.forEach((s, k) => {
+        const r = readAt(s, i);
+        if (!r.p) { halos[k].setAttribute("display", "none"); return; }
+        halos[k].removeAttribute("display");
+        halos[k].setAttribute("cx", x(Math.max(r.p.i, I0))); halos[k].setAttribute("cy", y(r.p.v));
+        rows.push({ s: s, p: r.p, stale: r.p.i < i });
+      });
+      cg.style.display = "";
+      rows.sort((a, b) => b.p.v - a.p.v);
+      let html = "<h3>" + monthLong(i) + "</h3><table>";
+      const notes = [];
+      for (const r of rows) {
+        const sameYear = Math.floor(r.p.i / 12) === Math.floor(i / 12);
+        const when = sameYear ? MONTHS[r.p.i % 12] : monthShort(r.p.i);
+        const q = qualifier(r.p);
+        html += '<tr><td class="arr-name"><span class="asw" style="background:' +
+                (dark ? r.s.colorDark : r.s.colorLight) + '"></span>' + r.s.name +
+                "</td><td>" + fmtVal(r.p.v) + '</td><td class="arr-as">(' + when + ", " +
+                (q || tierWord(r.p.tier)) + ")</td></tr>";
+        if (r.stale && r.s.endNote) notes.push(r.s.name + " — " + r.s.endNote + ".");
+      }
+      html += "</table>";
+      for (const n of notes) html += '<p class="arr-note">' + n + "</p>";
+      tipEl.innerHTML = html;
+      tipEl.style.display = "block";
+      const tw = tipEl.offsetWidth, th = tipEl.offsetHeight;
+      let tx = clientX + 12, ty = clientY + 10;
+      if (tx + tw > window.innerWidth - 8) tx = clientX - tw - 12;
+      if (tx < 8) tx = 8;
+      if (ty + th > window.innerHeight - 8) ty = clientY - th - 10;
+      if (ty < 8) ty = 8;
+      tipEl.style.left = tx + "px";
+      tipEl.style.top = ty + "px";
+    }
+
+    const ov = mk("rect", { x: L, y: T, width: plotW, height: plotH, fill: "transparent" });
+    ov.addEventListener("mousemove", ev => showArr(ev.clientX, ev.clientY));
+    ov.addEventListener("mouseleave", hideArr);
+    // stopPropagation keeps the page-level "click outside #svg-main hides the
+    // tooltip" handler from immediately closing what we just opened.
+    ov.addEventListener("click", ev => { ev.stopPropagation(); showArr(ev.clientX, ev.clientY); });
+    ov.addEventListener("touchstart", ev => {
+      const t = ev.touches[0];
+      if (t) { ev.stopPropagation(); showArr(t.clientX, t.clientY); }
+    }, { passive: true });
+    ov.addEventListener("touchmove", ev => {
+      const t = ev.touches[0];
+      if (t) showArr(t.clientX, t.clientY);
+    }, { passive: true });
+    svg.appendChild(ov);
+  }
+
+  window.addEventListener("resize", renderArr);
+  darkMQ.addEventListener("change", renderArr);
+  document.addEventListener("click", ev => {
+    // Only ever hide our own crosshair here — the shared #tooltip is managed by
+    // the page-level handler, so we must not fight it over the other charts.
+    if (crossG && !ev.target.closest("#arr-chart")) crossG.style.display = "none";
+  });
+
+  renderArr();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderArr);
+})();
+</script>
+<!-- /arr -->
 </body>
 </html>
