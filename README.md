@@ -41,6 +41,12 @@ GB300-equivalents, with 90% CIs and a three-mode toggle:
    with FP8, FP4, and memory-bandwidth views. Values come from the Summary tab of the
    regional compute model; “Other” and “World total” are excluded. The section code in
    `docs/index.html` sits between `<!-- regional-map -->` delimiters.
+6. `scripts/sync_regional_compute.py` — authenticated Summary-tab reader and validated
+   generator for `docs/regional_data.js`. It keys rows by region name, checks every expected
+   region and value, and changes the data asset's cache key when values change.
+7. `scripts/sync_regional_site.sh` — unattended publisher used by the hourly VM schedule.
+   It refuses to run on a dirty checkout, fast-forwards first, and only commits when the
+   generated regional data changed.
 
 ## Updating
 
