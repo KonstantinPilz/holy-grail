@@ -139,6 +139,44 @@
   #labs-form button:hover { background: var(--control-active); }
   #labs-err { color: #c0392b; font-size: 12px; }
 </style>
+<!-- regional-map -->
+<style>
+  #regional { margin-top: 34px; border-top: 1px solid var(--border); padding-top: 20px; }
+  #regional h2 { font-size: 18px; margin: 0 0 4px; font-weight: 700; line-height: 1.25; }
+  #regional-mode-select {
+    flex-shrink: 0; margin-top: 2px; margin-left: auto;
+    appearance: none; -webkit-appearance: none;
+    border: 1px solid var(--border); border-radius: 4px; background: var(--control-bg);
+    color: var(--text); font: inherit; font-size: 13px; font-weight: 700; line-height: 1.2;
+    padding: 6px 30px 6px 12px; cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23808080' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    transition: background-color .12s ease, border-color .12s ease;
+  }
+  #regional-mode-select:hover { background-color: var(--control-active); border-color: var(--text-3); }
+  #regional-mode-select:focus-visible { outline: 2px solid var(--bar); outline-offset: 1px; }
+  #regional-chart { position: relative; width: 100%; margin-top: 4px; }
+  #regional-chart svg { display: block; width: 100%; overflow: visible; }
+  #regional-status { color: var(--text-3); font-size: 11.5px; margin: 8px 0 0; }
+  .regional-sphere { fill: var(--bg); stroke: var(--border); stroke-width: 1; }
+  .regional-country {
+    fill: var(--grid); stroke: var(--bg); stroke-width: .55;
+    vector-effect: non-scaling-stroke;
+  }
+  .regional-country.included { fill: var(--bar); fill-opacity: .30; }
+  .regional-bar { fill: var(--bar); }
+  .regional-leader {
+    fill: none; stroke: var(--text-3); stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+  .regional-label {
+    fill: var(--text); font-size: 11.5px;
+    paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round;
+  }
+  .regional-name { font-weight: 700; }
+  .regional-value { fill: var(--text-2); font-weight: 400; }
+</style>
+<!-- /regional-map -->
 <!-- funding -->
 <style>
   /* ---- AI lab equity funding section ---- */
@@ -270,6 +308,26 @@
     <div class="method" id="method"></div>
   </details>
 
+  <!-- regional-map -->
+  <section id="regional">
+    <header>
+      <div>
+        <h2>AI compute by region, end of 2026</h2>
+        <p class="subtitle">Installed compute in <strong>GB300-equivalents (GB300e)</strong>. Colored countries are included; bar heights are linear within each view.</p>
+      </div>
+      <select id="regional-mode-select" aria-label="Regional compute conversion mode">
+        <option value="fp8" selected>FP8 FLOP/s</option>
+        <option value="fp4">FP4 FLOP/s</option>
+        <option value="bw">Memory Bandwidth</option>
+      </select>
+    </header>
+    <p class="mode-note" id="regional-mode-note"></p>
+    <div id="regional-chart"></div>
+    <p id="regional-status">Loading map…</p>
+    <p class="fine">“Other” and “World total” are excluded. Source: <a href="https://docs.google.com/spreadsheets/d/1fKutDSCU4Hce-YAKra6zQX2-Y0uANfwc8_Atn7jguuc/edit?gid=1904826130#gid=1904826130">regional compute model, Summary tab</a> (updated August 13, 2026).</p>
+  </section>
+  <!-- /regional-map -->
+
   <section id="labs">
     <header>
       <div>
@@ -389,6 +447,8 @@
   </footer>
 </div>
 
+<script src="regional_data.js?v=1"></script>
+<script type="module" src="regional_map.js?v=1"></script>
 <script src="data.js?v=80ci"></script>
 <script>
 "use strict";

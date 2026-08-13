@@ -37,6 +37,10 @@ GB300-equivalents, with 90% CIs and a three-mode toggle:
    (Google Sheet ID `1n0yQSwTY_XdVhTICZxieZCT50MUBLj0dEXDHBUcq6jk`). To update: edit
    rounds.csv, rerun the build script, commit `docs/funding_data.js`. The chart code sits
    in `docs/index.html` between `<!-- funding -->` delimiters.
+5. `docs/regional_data.js` and `docs/regional_map.js` — public EOY-2026 regional compute map
+   with FP8, FP4, and memory-bandwidth views. Values come from the Summary tab of the
+   regional compute model; “Other” and “World total” are excluded. The section code in
+   `docs/index.html` sits between `<!-- regional-map -->` delimiters.
 
 ## Updating
 
