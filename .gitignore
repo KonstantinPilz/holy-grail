@@ -1,3 +1,5 @@
 sync_labs.py
 sync_labs.log*
 labs_payload.sha
+__pycache__/
+*.py[cod]
