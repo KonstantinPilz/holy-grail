@@ -8,7 +8,10 @@ const select = document.getElementById("regional-mode-select");
 const note = document.getElementById("regional-mode-note");
 const status = document.getElementById("regional-status");
 const countries = feature(world, world.objects.features).features;
-const included = new Set(data.includedCountries);
+const countryRegion = new Map();
+for (const [region, ids] of Object.entries(data.regionCountries)) {
+  for (const id of ids) countryRegion.set(id, region);
+}
 const NS = "http://www.w3.org/2000/svg";
 
 const modes = {
@@ -94,9 +97,11 @@ function draw() {
   svg.appendChild(svgEl("path", { class: "regional-sphere", d: path({ type: "Sphere" }) }));
   const map = svgEl("g");
   for (const country of countries) {
+    const region = countryRegion.get(country.properties.id);
     map.appendChild(svgEl("path", {
-      class: included.has(country.properties.id) ? "regional-country included" : "regional-country",
+      class: region ? "regional-country included" : "regional-country",
       d: path(country),
+      ...(region ? { style: `--regional-color:var(--region-${region})` } : {}),
     }));
   }
   svg.appendChild(map);
@@ -124,6 +129,7 @@ function draw() {
 
     const bar = svgEl("rect", {
       class: "regional-bar",
+      style: `--regional-color:var(--region-${region.key})`,
       x: x - barWidth / 2,
       y: barTop,
       width: barWidth,
@@ -137,6 +143,7 @@ function draw() {
 
     group.appendChild(svgEl("path", {
       class: "regional-leader",
+      style: `--regional-color:var(--region-${region.key})`,
       d: `M${x},${barTop - 1} L${labelX + (dx < 0 ? 3 : -3)},${labelY - 4}`,
     }));
 

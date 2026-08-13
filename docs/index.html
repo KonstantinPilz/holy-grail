@@ -25,6 +25,15 @@
     --border: #dddddd;
     --control-bg: #ffffff;
     --control-active: #f1f1f1;
+    --region-us: #1d81a2;
+    --region-china: #b0492f;
+    --region-europe: #5f7fa8;
+    --region-sea: #3b8b79;
+    --region-india: #a27b37;
+    --region-east-asia: #766ca8;
+    --region-middle-east: #9a6a3f;
+    --region-latam: #5a8b63;
+    --region-anz: #4d7890;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -42,6 +51,15 @@
       --border: #444444;
       --control-bg: #1f1f1f;
       --control-active: #333333;
+      --region-us: #2e94bd;
+      --region-china: #d06a4e;
+      --region-europe: #7898c8;
+      --region-sea: #55a894;
+      --region-india: #c49a4c;
+      --region-east-asia: #998bc9;
+      --region-middle-east: #c58658;
+      --region-latam: #75a77e;
+      --region-anz: #6f9bb2;
     }
   }
   * { box-sizing: border-box; }
@@ -163,10 +181,10 @@
     fill: var(--grid); stroke: var(--bg); stroke-width: .55;
     vector-effect: non-scaling-stroke;
   }
-  .regional-country.included { fill: var(--bar); fill-opacity: .30; }
-  .regional-bar { fill: var(--bar); }
+  .regional-country.included { fill: var(--regional-color); fill-opacity: .34; }
+  .regional-bar { fill: var(--regional-color); }
   .regional-leader {
-    fill: none; stroke: var(--text-3); stroke-width: 1;
+    fill: none; stroke: var(--regional-color); stroke-width: 1; opacity: .72;
     vector-effect: non-scaling-stroke;
   }
   .regional-label {
