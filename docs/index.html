@@ -25,15 +25,16 @@
     --border: #dddddd;
     --control-bg: #ffffff;
     --control-active: #f1f1f1;
-    --region-us: #1d81a2;
-    --region-china: #b0492f;
-    --region-europe: #5f7fa8;
-    --region-sea: #3b8b79;
-    --region-india: #a27b37;
-    --region-east-asia: #766ca8;
-    --region-middle-east: #9a6a3f;
-    --region-latam: #5a8b63;
-    --region-anz: #4d7890;
+    --region-us: #6f9fb0;
+    --region-china: #bd9184;
+    --region-europe: #899dbd;
+    --region-sea: #78a99d;
+    --region-india: #b69d68;
+    --region-east-asia: #9d94ba;
+    --region-middle-east: #b29279;
+    --region-latam: #81a389;
+    --region-anz: #829faa;
+    --regional-fill-opacity: .27;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -51,15 +52,16 @@
       --border: #444444;
       --control-bg: #1f1f1f;
       --control-active: #333333;
-      --region-us: #2e94bd;
-      --region-china: #d06a4e;
-      --region-europe: #7898c8;
-      --region-sea: #55a894;
-      --region-india: #c49a4c;
-      --region-east-asia: #998bc9;
-      --region-middle-east: #c58658;
-      --region-latam: #75a77e;
-      --region-anz: #6f9bb2;
+      --region-us: #86b4c4;
+      --region-china: #d0a091;
+      --region-europe: #9fb2d0;
+      --region-sea: #8ebcaf;
+      --region-india: #c8b078;
+      --region-east-asia: #b4aad0;
+      --region-middle-east: #c4a18a;
+      --region-latam: #98b69e;
+      --region-anz: #98b3bd;
+      --regional-fill-opacity: .31;
     }
   }
   * { box-sizing: border-box; }
@@ -181,7 +183,7 @@
     fill: var(--grid); stroke: var(--bg); stroke-width: .55;
     vector-effect: non-scaling-stroke;
   }
-  .regional-country.included { fill: var(--regional-color); fill-opacity: .34; }
+  .regional-country.included { fill: var(--regional-color); fill-opacity: var(--regional-fill-opacity); }
   .regional-bar { fill: var(--regional-color); }
   .regional-leader {
     fill: none; stroke: var(--regional-color); stroke-width: 1; opacity: .72;
@@ -465,8 +467,8 @@
   </footer>
 </div>
 
-<script src="regional_data.js?v=1"></script>
-<script type="module" src="regional_map.js?v=1"></script>
+<script src="regional_data.js?v=2"></script>
+<script type="module" src="regional_map.js?v=2"></script>
 <script src="data.js?v=80ci"></script>
 <script>
 "use strict";
