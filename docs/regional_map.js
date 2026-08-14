@@ -13,6 +13,10 @@ const countryRegion = new Map();
 for (const [region, ids] of Object.entries(data.regionCountries)) {
   for (const id of ids) countryRegion.set(id, region);
 }
+const regionLookup = new Map();
+for (const region of data.regions) {
+  regionLookup.set(region.key, region);
+}
 const NS = "http://www.w3.org/2000/svg";
 
 const modes = {
@@ -171,7 +175,11 @@ function draw() {
       d: path(country),
       ...(region ? { style: `--regional-color:var(--region-${region})` } : {}),
     });
-    if (!region) wireOtherTooltip(countryPath);
+    if (region) {
+      wireRegionTooltip(countryPath, regionLookup.get(region), mode);
+    } else {
+      wireOtherTooltip(countryPath);
+    }
     map.appendChild(countryPath);
   }
   svg.appendChild(map);
