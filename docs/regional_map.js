@@ -66,7 +66,17 @@ function formatCompact(value) {
 }
 
 function formatExact(value) {
+  if (value == null) return "N/A";
   return Math.round(value).toLocaleString("en-US");
+}
+
+function formatCI(region, mode) {
+  const lowKey = `${mode}P10`;
+  const highKey = `${mode}P90`;
+  const low = region[lowKey];
+  const high = region[highKey];
+  if (low == null || high == null) return "";
+  return `\n80% CI: ${formatExact(low)} - ${formatExact(high)} GB300e`;
 }
 
 function draw() {
@@ -137,7 +147,7 @@ function draw() {
       rx: Math.min(1.5, barHeight / 2),
     });
     const title = svgEl("title");
-    title.textContent = `${region.name}: ${formatExact(region[mode])} GB300e (${modes[mode].label})`;
+    title.textContent = `${region.name}: ${formatExact(region[mode])} GB300e (${modes[mode].label})${formatCI(region, mode)}`;
     bar.appendChild(title);
     group.appendChild(bar);
 

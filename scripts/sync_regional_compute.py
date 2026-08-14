@@ -143,10 +143,29 @@ def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]
         for index, name in enumerate(rows[header_index])
     }
 
-    fp8_col = pick_column(
-        lambda token: "fp8" in token and "gb300e" in token and "share" not in token,
-        prefer_p50=True,
-    )
+    def metric_columns(metric: str) -> dict[str, int]:
+        candidate_columns = [
+            (index, toks)
+            for index, toks in header_tokens.items()
+            if metric in toks and "gb300e" in toks and "share" not in toks
+        ]
+        if not candidate_columns:
+            return {}
+
+        by_level = {}
+        for level in ("p10", "p50", "p90"):
+            by_level[level] = next(
+                (index for index, toks in candidate_columns if level in toks),
+                -1,
+            )
+
+        median = by_level["p50"]
+        if median < 0:
+            median = candidate_columns[0][0]
+        by_level["median"] = median
+        return by_level
+
+    fp8_cols = metric_columns("fp8")
     fp4_col = pick_column(
         lambda token: "fp4" in token and "gb300e" in token and "share" not in token,
         prefer_p50=False,
@@ -157,7 +176,7 @@ def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]
     )
 
     missing_columns = []
-    if fp8_col < 0:
+    if not fp8_cols:
         missing_columns.append("FP8 GB300e")
     if fp4_col < 0:
         missing_columns.append("FP4 GB300e")
@@ -189,26 +208,54 @@ def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]
     if missing:
         raise ValueError(f"Missing expected regions: {sorted(missing)}")
 
-    required_index = max(fp8_col, fp4_col, bw_col)
+    # Require the median column for each mode when scaling bars.
+    required_index = max(fp8_cols["median"], fp4_col, bw_col)
     regions = []
     for sheet_name, meta in REGION_META.items():
         row = by_name[sheet_name]
         if len(row) <= required_index:
             raise ValueError(f"Incomplete row for {sheet_name}")
-        values = [row[fp8_col], row[fp4_col], row[bw_col]]
+        fp8_median = row[fp8_cols["median"]]
+        fp4_value = row[fp4_col]
+        bw_value = row[bw_col]
+        fp8_ci = {
+            "p10": fp8_cols.get("p10", -1),
+            "p90": fp8_cols.get("p90", -1),
+        }
+        fp8_values = [fp8_median, fp4_value, bw_value]
         if not all(
-            isinstance(value, (int, float)) and math.isfinite(value) and value > 0 for value in values
+            isinstance(value, (int, float)) and math.isfinite(value) and value > 0
+            for value in fp8_values
         ):
-            raise ValueError(f"Invalid compute values for {sheet_name}: {values}")
+            raise ValueError(
+                f"Invalid compute values for {sheet_name}: "
+                f"{[fp8_median, fp4_value, bw_value]}"
+            )
+        fp8_p10 = row[fp8_ci["p10"]] if fp8_ci["p10"] >= 0 else None
+        fp8_p90 = row[fp8_ci["p90"]] if fp8_ci["p90"] >= 0 else None
+        if fp8_p10 is not None and (
+            not isinstance(fp8_p10, (int, float)) or not math.isfinite(fp8_p10)
+        ):
+            raise ValueError(f"Invalid FP8 p10 value for {sheet_name}: {fp8_p10}")
+        if fp8_p90 is not None and (
+            not isinstance(fp8_p90, (int, float)) or not math.isfinite(fp8_p90)
+        ):
+            raise ValueError(f"Invalid FP8 p90 value for {sheet_name}: {fp8_p90}")
         regions.append(
             {
                 "key": meta["key"],
                 "name": meta.get("name", sheet_name),
                 "short": meta["short"],
                 "coordinates": meta["coordinates"],
-                "fp8": round(values[0]),
-                "fp4": round(values[1]),
-                "bw": round(values[2]),
+                "fp8": round(fp8_median),
+                "fp8P10": round(fp8_p10) if fp8_p10 is not None else None,
+                "fp8P90": round(fp8_p90) if fp8_p90 is not None else None,
+                "fp4": round(fp4_value),
+                "fp4P10": None,
+                "fp4P90": None,
+                "bw": round(bw_value),
+                "bwP10": None,
+                "bwP90": None,
             }
         )
     return updated, regions

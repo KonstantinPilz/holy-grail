@@ -13,8 +13,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         35
       ],
       "fp8": 925392,
+      "fp8P10": 790395,
+      "fp8P90": 1261316,
       "fp4": 430851,
-      "bw": 1832970
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 1832970,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "us",
@@ -25,8 +31,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         38
       ],
       "fp8": 15662797,
+      "fp8P10": 14151137,
+      "fp8P90": 16310741,
       "fp4": 10544440,
-      "bw": 15831908
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 15831908,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "europe",
@@ -37,8 +49,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         51
       ],
       "fp8": 1555687,
+      "fp8P10": 1109902,
+      "fp8P90": 2256818,
       "fp4": 1035404,
-      "bw": 1580122
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 1580122,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "sea",
@@ -49,8 +67,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         7
       ],
       "fp8": 571960,
+      "fp8P10": 458706,
+      "fp8P90": 982682,
       "fp4": 376995,
-      "bw": 572690
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 572690,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "india",
@@ -61,8 +85,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         22
       ],
       "fp8": 326628,
+      "fp8P10": 153941,
+      "fp8P90": 492705,
       "fp4": 222345,
-      "bw": 327504
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 327504,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "east-asia",
@@ -73,8 +103,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         37
       ],
       "fp8": 353603,
+      "fp8P10": 266153,
+      "fp8P90": 547218,
       "fp4": 219444,
-      "bw": 367041
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 367041,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "middle-east",
@@ -85,8 +121,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         27
       ],
       "fp8": 537712,
+      "fp8P10": 263944,
+      "fp8P90": 855118,
       "fp4": 399745,
-      "bw": 532051
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 532051,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "latam",
@@ -97,8 +139,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -16
       ],
       "fp8": 101391,
+      "fp8P10": 68381,
+      "fp8P90": 195085,
       "fp4": 69730,
-      "bw": 101702
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 101702,
+      "bwP10": null,
+      "bwP90": null
     },
     {
       "key": "anz",
@@ -109,8 +157,14 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -34
       ],
       "fp8": 138046,
+      "fp8P10": 77848,
+      "fp8P90": 213793,
       "fp4": 94072,
-      "bw": 139341
+      "fp4P10": null,
+      "fp4P90": null,
+      "bw": 139341,
+      "bwP10": null,
+      "bwP90": null
     }
   ],
   "regionCountries": {
