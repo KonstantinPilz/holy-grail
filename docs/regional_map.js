@@ -7,6 +7,7 @@ const chart = document.getElementById("regional-chart");
 const select = document.getElementById("regional-mode-select");
 const note = document.getElementById("regional-mode-note");
 const status = document.getElementById("regional-status");
+const tooltip = document.getElementById("tooltip");
 const countries = feature(world, world.objects.features).features;
 const countryRegion = new Map();
 for (const [region, ids] of Object.entries(data.regionCountries)) {
@@ -79,8 +80,35 @@ function formatCI(region, mode) {
   return `\n80% CI: ${formatExact(low)} - ${formatExact(high)} GB300e`;
 }
 
+function showTooltip(event, region, mode) {
+  if (!tooltip) return;
+  const compact = formatExact(region[mode]);
+  const ci = formatCI(region, mode);
+  tooltip.innerHTML = `
+    <h3>${region.name}</h3>
+    <p class="tt-ci">Value: ${compact} GB300e (${modes[mode].label})</p>
+    ${ci ? `<p class=\"tt-ci\">${ci.trim()}</p>` : ""}
+  `;
+  tooltip.style.display = "block";
+  const x = Math.min(window.innerWidth - tooltip.offsetWidth - 12, event.clientX + 12);
+  const y = Math.min(window.innerHeight - tooltip.offsetHeight - 12, event.clientY + 12);
+  tooltip.style.left = `${Math.max(12, x)}px`;
+  tooltip.style.top = `${Math.max(12, y)}px`;
+}
+
+function hideTooltip() {
+  if (tooltip) tooltip.style.display = "none";
+}
+
+function trackTooltip(event) {
+  if (!tooltip) return;
+  tooltip.style.left = `${Math.min(window.innerWidth - tooltip.offsetWidth - 12, event.clientX + 12)}px`;
+  tooltip.style.top = `${Math.min(window.innerHeight - tooltip.offsetHeight - 12, event.clientY + 12)}px`;
+}
+
 function draw() {
   const mode = select.value;
+  hideTooltip();
   const width = Math.max(280, Math.round(chart.clientWidth || 628));
   const narrow = width < 520;
   const height = narrow ? Math.round(width * 0.82) : Math.min(390, Math.round(width * 0.59));
@@ -139,6 +167,7 @@ function draw() {
 
     const bar = svgEl("rect", {
       class: "regional-bar",
+      tabindex: "0",
       style: `--regional-color:var(--region-${region.key})`,
       x: x - barWidth / 2,
       y: barTop,
@@ -149,6 +178,12 @@ function draw() {
     const title = svgEl("title");
     title.textContent = `${region.name}: ${formatExact(region[mode])} GB300e (${modes[mode].label})${formatCI(region, mode)}`;
     bar.appendChild(title);
+    bar.addEventListener("pointerenter", (event) => showTooltip(event, region, mode));
+    bar.addEventListener("pointermove", trackTooltip);
+    bar.addEventListener("pointerleave", hideTooltip);
+    bar.addEventListener("pointerdown", (event) => {
+      if (event.pointerType === "touch") showTooltip(event, region, mode);
+    });
     group.appendChild(bar);
 
     group.appendChild(svgEl("path", {

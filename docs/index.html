@@ -184,7 +184,9 @@
     vector-effect: non-scaling-stroke;
   }
   .regional-country.included { fill: var(--regional-color); fill-opacity: var(--regional-fill-opacity); }
-  .regional-bar { fill: var(--regional-color); }
+  .regional-bar { fill: var(--regional-color); cursor: pointer; transition: transform .12s ease, opacity .12s ease; }
+  .regional-bar:hover, .regional-bar:focus-visible { opacity: .8; }
+  .regional-mark { pointer-events: none; }
   .regional-leader {
     fill: none; stroke: var(--regional-color); stroke-width: 1; opacity: .72;
     vector-effect: non-scaling-stroke;
@@ -468,7 +470,7 @@
 </div>
 
 <script src="regional_data.js?v=bb8b764b50"></script>
-<script type="module" src="regional_map.js?v=3"></script>
+<script type="module" src="regional_map.js?v=4"></script>
 <script src="data.js?v=80ci"></script>
 <script>
 "use strict";
