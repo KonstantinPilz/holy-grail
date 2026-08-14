@@ -30,12 +30,33 @@ const modes = {
   },
 };
 
+function showOtherTooltip(event) {
+  if (!tooltip) return;
+  tooltip.innerHTML = `
+    <h3>Other</h3>
+  `;
+  tooltip.style.display = "block";
+  const x = Math.min(window.innerWidth - tooltip.offsetWidth - 12, event.clientX + 12);
+  const y = Math.min(window.innerHeight - tooltip.offsetHeight - 12, event.clientY + 12);
+  tooltip.style.left = `${Math.max(12, x)}px`;
+  tooltip.style.top = `${Math.max(12, y)}px`;
+}
+
 function wireRegionTooltip(target, region, mode) {
   target.addEventListener("pointerenter", (event) => showTooltip(event, region, mode));
   target.addEventListener("pointermove", trackTooltip);
   target.addEventListener("pointerleave", hideTooltip);
   target.addEventListener("pointerdown", (event) => {
     if (event.pointerType === "touch") showTooltip(event, region, mode);
+  });
+}
+
+function wireOtherTooltip(target) {
+  target.addEventListener("pointerenter", showOtherTooltip);
+  target.addEventListener("pointermove", trackTooltip);
+  target.addEventListener("pointerleave", hideTooltip);
+  target.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch") showOtherTooltip(event);
   });
 }
 
@@ -145,11 +166,13 @@ function draw() {
   const map = svgEl("g");
   for (const country of countries) {
     const region = countryRegion.get(country.properties.id);
-    map.appendChild(svgEl("path", {
+    const countryPath = svgEl("path", {
       class: region ? "regional-country included" : "regional-country",
       d: path(country),
       ...(region ? { style: `--regional-color:var(--region-${region})` } : {}),
-    }));
+    });
+    if (!region) wireOtherTooltip(countryPath);
+    map.appendChild(countryPath);
   }
   svg.appendChild(map);
 

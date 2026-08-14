@@ -164,6 +164,28 @@ def main() -> int:
             failures.append((f"wireRegionTooltip call for {target}", ln, note))
         record(results, f"wireRegionTooltip called for {target}", passed, note)
 
+    other_helper_ok = all(
+        evt in compact_map
+        for evt in [
+            "function showOtherTooltip(event)",
+            "function wireOtherTooltip(target)",
+            "target.addEventListener(\"pointerenter\", showOtherTooltip)",
+            "target.addEventListener(\"pointermove\", trackTooltip)",
+            "target.addEventListener(\"pointerleave\", hideTooltip)",
+            "wireOtherTooltip(countryPath);",
+            "if (!region) wireOtherTooltip(countryPath);",
+        ]
+    )
+    if other_helper_ok:
+        passed = True
+        other_note = None
+    else:
+        other_line = line_number(map_text, "function showOtherTooltip(event)")
+        passed = False
+        other_note = "Missing non-region country tooltip wiring for \"Other\""
+        failures.append(("grey map regions show Other on hover", other_line, other_note))
+    record(results, "grey map regions wire non-region tooltips to \"Other\"", passed, other_note)
+
     # 2) draw() calls hideTooltip at start
     draw_block = extract_block(map_text, "function draw() ")
     if not draw_block:
@@ -189,6 +211,7 @@ def main() -> int:
     # 3) regional interaction zone cursor + tabindex
     bar_style_present = re.search(r"\.regional-bar\s*{[^}]*cursor:\s*pointer", index_text, re.S) is not None
     mark_style_present = re.search(r"\.regional-mark\s*{[^}]*cursor:\s*pointer", index_text, re.S) is not None
+    country_style_present = re.search(r"\.regional-country:not\(\.included\)\s*{[^}]*cursor:\s*pointer", index_text, re.S) is not None
     tabindex_present = "tabindex: \"0\"" in compact_map
     if not bar_style_present:
         ln = line_number(index_text, ".regional-bar")
@@ -196,6 +219,9 @@ def main() -> int:
     if not mark_style_present:
         ln = line_number(index_text, ".regional-mark")
         failures.append(("regional-mark cursor pointer", ln, "CSS rule missing: .regional-mark { cursor: pointer; }"))
+    if not country_style_present:
+        ln = line_number(index_text, ".regional-country:not(.included)")
+        failures.append(("regional-country:not(.included) cursor pointer", ln, "CSS rule missing: .regional-country:not(.included) { cursor: pointer; }"))
     if not tabindex_present:
         ln = line_number(map_text, "tabindex:")
         failures.append(("regional-bar tabindex", ln, "JS region bars missing tabindex for touch/keyboard-accessible interaction"))
@@ -205,6 +231,7 @@ def main() -> int:
         failures.append(("regional-mark keeps pointer events enabled", ln, "Wrapper element cannot disable pointer events on region bars"))
     record(results, "CSS sets regional bar pointer cursor", bar_style_present, None if bar_style_present else "missing")
     record(results, "CSS sets regional mark pointer cursor", mark_style_present, None if mark_style_present else "missing")
+    record(results, "CSS sets non-included region country pointer cursor", country_style_present, None if country_style_present else "missing")
     record(results, "regional region elements include tabindex", tabindex_present, None if tabindex_present else "missing")
     record(results, "regional-mark wrapper does not disable pointer events", mark_pointer_ok, None if mark_pointer_ok else "found pointer-events: none")
 
@@ -256,12 +283,12 @@ def main() -> int:
     record(results, "every region has coordinates [lon, lat]", coordinate_ok, None)
 
     # 5) cache-bust tag in index.html
-    cache_ok = 'regional_map.js?v=5"' in index_text
-    cache_line = line_number(index_text, 'regional_map.js?v=5"')
-    cache_note = None if cache_ok else "regional_map.js cache-buster missing or not expected v=5"
+    cache_ok = 'regional_map.js?v=6"' in index_text
+    cache_line = line_number(index_text, 'regional_map.js?v=6"')
+    cache_note = None if cache_ok else "regional_map.js cache-buster missing or not expected v=6"
     if not cache_ok:
-        failures.append(("index cache-bust is regional_map.js?v=5", cache_line, cache_note))
-    record(results, "index.html regional_map.js includes ?v=5", cache_ok, cache_note)
+        failures.append(("index cache-bust is regional_map.js?v=6", cache_line, cache_note))
+    record(results, "index.html regional_map.js includes ?v=6", cache_ok, cache_note)
 
     # 6) negative/failing-mode regression test: tooltip null guard
     show_block = extract_function_block(map_text, "showTooltip")
