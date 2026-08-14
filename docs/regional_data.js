@@ -24,9 +24,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -101,
         38
       ],
-      "fp8": 16258497,
-      "fp4": 10864326,
-      "bw": 16474924
+      "fp8": 15706809,
+      "fp4": 10572959,
+      "bw": 15874607
     },
     {
       "key": "europe",
@@ -36,9 +36,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         13,
         51
       ],
-      "fp8": 1279913,
-      "fp4": 881951,
-      "bw": 1276072
+      "fp8": 1560492,
+      "fp4": 1038518,
+      "bw": 1584784
     },
     {
       "key": "sea",
@@ -48,9 +48,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         106,
         7
       ],
-      "fp8": 646424,
-      "fp4": 464232,
-      "bw": 640458
+      "fp8": 574488,
+      "fp4": 378633,
+      "bw": 575143
     },
     {
       "key": "india",
@@ -60,9 +60,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         78,
         22
       ],
-      "fp8": 277498,
-      "fp4": 192694,
-      "bw": 275471
+      "fp8": 327753,
+      "fp4": 223074,
+      "bw": 328596
     },
     {
       "key": "east-asia",
@@ -72,9 +72,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         139,
         37
       ],
-      "fp8": 319606,
-      "fp4": 210271,
-      "bw": 325203
+      "fp8": 354678,
+      "fp4": 220140,
+      "bw": 368083
     },
     {
       "key": "middle-east",
@@ -84,9 +84,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         46,
         27
       ],
-      "fp8": 310633,
-      "fp4": 230468,
-      "bw": 307437
+      "fp8": 538316,
+      "fp4": 400136,
+      "bw": 532637
     },
     {
       "key": "latam",
@@ -96,9 +96,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -60,
         -16
       ],
-      "fp8": 107117,
-      "fp4": 75057,
-      "bw": 106073
+      "fp8": 101698,
+      "fp4": 69929,
+      "bw": 102000
     },
     {
       "key": "anz",
@@ -108,9 +108,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         146,
         -34
       ],
-      "fp8": 118492,
-      "fp4": 85313,
-      "bw": 118011
+      "fp8": 138394,
+      "fp4": 94297,
+      "bw": 139679
     }
   ],
   "regionCountries": {
