@@ -91,7 +91,7 @@ def sheet_values(token: str) -> list[list[object]]:
         for sheet in metadata["sheets"]
         if sheet["properties"]["sheetId"] == SHEET_GID
     )
-    quoted = "'" + title.replace("'", "''") + "'!A:G"
+    quoted = "'" + title.replace("'", "''") + "'!A:Z"
     encoded_range = urllib.parse.quote(quoted, safe="")
     values_url = (
         f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}/values/{encoded_range}"
@@ -101,41 +101,104 @@ def sheet_values(token: str) -> list[list[object]]:
 
 
 def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]]:
+    def norm(value: object) -> str:
+        return re.sub(r"\s+", " ", str(value).replace("\xa0", " ").strip()).strip().lower()
+
+    def token_set(value: object) -> set[str]:
+        return set(re.findall(r"[a-z0-9]+", norm(value)))
+
+    def pick_column(predicate, prefer_p50: bool = True) -> int:
+        matches = [
+            (index, toks)
+            for index, toks in header_tokens.items()
+            if predicate(toks)
+        ]
+        if not matches:
+            return -1
+        if prefer_p50:
+            p50 = [index for index, toks in matches if "p50" in toks]
+            if p50:
+                return p50[0]
+        return matches[0][0]
+
     updated = next(
-        (match.group(1) for row in rows for cell in row[:1]
-         if (match := re.fullmatch(r"Last updated (\d{4}-\d{2}-\d{2})", str(cell)))),
+        (
+            match.group(1)
+            for row in rows
+            for cell in row[:1]
+            if (match := re.fullmatch(r"Last updated (\d{4}-\d{2}-\d{2})", str(cell)))
+        ),
         None,
     )
     if not updated:
         raise ValueError("Summary tab has no 'Last updated YYYY-MM-DD' line")
 
-    header_index = next(index for index, row in enumerate(rows) if row and row[0] == "Region")
-    header = {str(name): index for index, name in enumerate(rows[header_index])}
-    required_columns = {"Region", "GB300e (FP8)", "GB300e (FP4)", "GB300e (by BW)"}
-    missing_columns = required_columns - set(header)
-    if missing_columns:
-        raise ValueError(f"Missing expected columns: {sorted(missing_columns)}")
-    by_name = {
-        str(row[0]): row
-        for row in rows[header_index + 1:]
-        if row and str(row[0]) in REGION_META
+    header_index = next(
+        index
+        for index, row in enumerate(rows)
+        if row and isinstance(row[0], str) and norm(row[0]) == "region"
+    )
+    header_tokens = {
+        index: token_set(name)
+        for index, name in enumerate(rows[header_index])
     }
+
+    fp8_col = pick_column(
+        lambda token: "fp8" in token and "gb300e" in token and "share" not in token,
+        prefer_p50=True,
+    )
+    fp4_col = pick_column(
+        lambda token: "fp4" in token and "gb300e" in token and "share" not in token,
+        prefer_p50=False,
+    )
+    bw_col = pick_column(
+        lambda token: "bw" in token and "gb300e" in token and "share" not in token,
+        prefer_p50=False,
+    )
+
+    missing_columns = []
+    if fp8_col < 0:
+        missing_columns.append("FP8 GB300e")
+    if fp4_col < 0:
+        missing_columns.append("FP4 GB300e")
+    if bw_col < 0:
+        missing_columns.append("BW GB300e")
+    if missing_columns:
+        raise ValueError(f"Missing expected columns: {missing_columns}")
+
+    region_aliases = {
+        norm("USA"): "usa",
+        norm("United States"): "usa",
+        norm("SE Asia"): "sea",
+        norm("Southeast Asia"): "sea",
+        norm("East Asia ex-China"): "east-asia",
+        norm("Australia & NZ"): "anz",
+        norm("Australia and NZ"): "anz",
+    }
+    region_aliases.update({norm(key): key for key in REGION_META})
+
+    by_name = {}
+    for row in rows[header_index + 1:]:
+        if not row or not isinstance(row[0], str):
+            continue
+        region_key = region_aliases.get(norm(row[0]))
+        if region_key:
+            by_name[region_key] = row
+
     missing = set(REGION_META) - set(by_name)
     if missing:
         raise ValueError(f"Missing expected regions: {sorted(missing)}")
 
+    required_index = max(fp8_col, fp4_col, bw_col)
     regions = []
     for sheet_name, meta in REGION_META.items():
         row = by_name[sheet_name]
-        required_index = max(header[name] for name in required_columns)
         if len(row) <= required_index:
             raise ValueError(f"Incomplete row for {sheet_name}")
-        values = [
-            row[header["GB300e (FP8)"]],
-            row[header["GB300e (FP4)"]],
-            row[header["GB300e (by BW)"]],
-        ]
-        if not all(isinstance(value, (int, float)) and math.isfinite(value) and value > 0 for value in values):
+        values = [row[fp8_col], row[fp4_col], row[bw_col]]
+        if not all(
+            isinstance(value, (int, float)) and math.isfinite(value) and value > 0 for value in values
+        ):
             raise ValueError(f"Invalid compute values for {sheet_name}: {values}")
         regions.append(
             {

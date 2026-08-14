@@ -1,7 +1,7 @@
 "use strict";
 
 window.REGIONAL_COMPUTE = Object.freeze({
-  "updated": "2026-08-13",
+  "updated": "2026-08-14",
   "sourceUrl": "https://docs.google.com/spreadsheets/d/1fKutDSCU4Hce-YAKra6zQX2-Y0uANfwc8_Atn7jguuc/edit?gid=1904826130#gid=1904826130",
   "regions": [
     {
@@ -12,9 +12,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         104,
         35
       ],
-      "fp8": 869979,
-      "fp4": 403882,
-      "bw": 1725636
+      "fp8": 925392,
+      "fp4": 430851,
+      "bw": 1832970
     },
     {
       "key": "us",
@@ -24,9 +24,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -101,
         38
       ],
-      "fp8": 15706809,
-      "fp4": 10572959,
-      "bw": 15874607
+      "fp8": 15662797,
+      "fp4": 10544440,
+      "bw": 15831908
     },
     {
       "key": "europe",
@@ -36,9 +36,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         13,
         51
       ],
-      "fp8": 1560492,
-      "fp4": 1038518,
-      "bw": 1584784
+      "fp8": 1555687,
+      "fp4": 1035404,
+      "bw": 1580122
     },
     {
       "key": "sea",
@@ -48,9 +48,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         106,
         7
       ],
-      "fp8": 574488,
-      "fp4": 378633,
-      "bw": 575143
+      "fp8": 571960,
+      "fp4": 376995,
+      "bw": 572690
     },
     {
       "key": "india",
@@ -60,9 +60,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         78,
         22
       ],
-      "fp8": 327753,
-      "fp4": 223074,
-      "bw": 328596
+      "fp8": 326628,
+      "fp4": 222345,
+      "bw": 327504
     },
     {
       "key": "east-asia",
@@ -72,9 +72,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         139,
         37
       ],
-      "fp8": 354678,
-      "fp4": 220140,
-      "bw": 368083
+      "fp8": 353603,
+      "fp4": 219444,
+      "bw": 367041
     },
     {
       "key": "middle-east",
@@ -84,9 +84,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         46,
         27
       ],
-      "fp8": 538316,
-      "fp4": 400136,
-      "bw": 532637
+      "fp8": 537712,
+      "fp4": 399745,
+      "bw": 532051
     },
     {
       "key": "latam",
@@ -96,9 +96,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -60,
         -16
       ],
-      "fp8": 101698,
-      "fp4": 69929,
-      "bw": 102000
+      "fp8": 101391,
+      "fp4": 69730,
+      "bw": 101702
     },
     {
       "key": "anz",
@@ -108,9 +108,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         146,
         -34
       ],
-      "fp8": 138394,
-      "fp4": 94297,
-      "bw": 139679
+      "fp8": 138046,
+      "fp4": 94072,
+      "bw": 139341
     }
   ],
   "regionCountries": {
