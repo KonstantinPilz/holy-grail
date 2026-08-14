@@ -24,9 +24,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -101,
         38
       ],
-      "fp8": 15698490,
-      "fp4": 10546692,
-      "bw": 15869841
+      "fp8": 16258497,
+      "fp4": 10864326,
+      "bw": 16474924
     },
     {
       "key": "europe",
@@ -36,9 +36,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         13,
         51
       ],
-      "fp8": 1528710,
-      "fp4": 1025502,
-      "bw": 1542501
+      "fp8": 1279913,
+      "fp4": 881951,
+      "bw": 1276072
     },
     {
       "key": "sea",
@@ -48,9 +48,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         106,
         7
       ],
-      "fp8": 760206,
-      "fp4": 536100,
-      "bw": 758676
+      "fp8": 646424,
+      "fp4": 464232,
+      "bw": 640458
     },
     {
       "key": "india",
@@ -60,9 +60,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         78,
         22
       ],
-      "fp8": 279928,
-      "fp4": 182714,
-      "bw": 282988
+      "fp8": 277498,
+      "fp4": 192694,
+      "bw": 275471
     },
     {
       "key": "east-asia",
@@ -72,9 +72,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         139,
         37
       ],
-      "fp8": 484895,
-      "fp4": 315582,
-      "bw": 498925
+      "fp8": 319606,
+      "fp4": 210271,
+      "bw": 325203
     },
     {
       "key": "middle-east",
@@ -84,9 +84,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         46,
         27
       ],
-      "fp8": 353729,
-      "fp4": 252689,
-      "bw": 354069
+      "fp8": 310633,
+      "fp4": 230468,
+      "bw": 307437
     },
     {
       "key": "latam",
@@ -96,9 +96,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         -60,
         -16
       ],
-      "fp8": 99959,
-      "fp4": 70611,
-      "bw": 101023
+      "fp8": 107117,
+      "fp4": 75057,
+      "bw": 106073
     },
     {
       "key": "anz",
@@ -108,9 +108,9 @@ window.REGIONAL_COMPUTE = Object.freeze({
         146,
         -34
       ],
-      "fp8": 140826,
-      "fp4": 99074,
-      "bw": 141681
+      "fp8": 118492,
+      "fp4": 85313,
+      "bw": 118011
     }
   ],
   "regionCountries": {
