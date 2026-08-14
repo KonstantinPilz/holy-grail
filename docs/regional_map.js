@@ -30,6 +30,15 @@ const modes = {
   },
 };
 
+function wireRegionTooltip(target, region, mode) {
+  target.addEventListener("pointerenter", (event) => showTooltip(event, region, mode));
+  target.addEventListener("pointermove", trackTooltip);
+  target.addEventListener("pointerleave", hideTooltip);
+  target.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "touch") showTooltip(event, region, mode);
+  });
+}
+
 const offsets = {
   wide: {
     "China": [10, -16],
@@ -153,6 +162,7 @@ function draw() {
     const group = svgEl("g", {
       class: "regional-mark",
       "aria-label": `${region.name}: ${formatExact(region[mode])} GB300-equivalents`,
+      tabindex: "0",
     });
     const [x, y] = projection(region.coordinates);
     const barHeight = region[mode] / maximum * maxHeight;
@@ -167,7 +177,6 @@ function draw() {
 
     const bar = svgEl("rect", {
       class: "regional-bar",
-      tabindex: "0",
       style: `--regional-color:var(--region-${region.key})`,
       x: x - barWidth / 2,
       y: barTop,
@@ -178,12 +187,8 @@ function draw() {
     const title = svgEl("title");
     title.textContent = `${region.name}: ${formatExact(region[mode])} GB300e (${modes[mode].label})${formatCI(region, mode)}`;
     bar.appendChild(title);
-    bar.addEventListener("pointerenter", (event) => showTooltip(event, region, mode));
-    bar.addEventListener("pointermove", trackTooltip);
-    bar.addEventListener("pointerleave", hideTooltip);
-    bar.addEventListener("pointerdown", (event) => {
-      if (event.pointerType === "touch") showTooltip(event, region, mode);
-    });
+    wireRegionTooltip(bar, region, mode);
+    wireRegionTooltip(group, region, mode);
     group.appendChild(bar);
 
     group.appendChild(svgEl("path", {

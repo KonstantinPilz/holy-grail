@@ -131,33 +131,38 @@ def main() -> int:
             failures.append((f"regional_map.js defines {fn}", ln, note))
         record(results, f"regional_map.js defines {fn}", passed, note)
 
-    required_listeners = [
-        ("pointerenter", "showTooltip(event, region, mode)"),
-        ("pointermove", "trackTooltip"),
-        ("pointerleave", "hideTooltip"),
-    ]
-    for evt, target in required_listeners:
-        pattern = f'bar.addEventListener("{evt}",'
-        if pattern in map_text and target in map_text:
-            passed = True
-            note = None
-        else:
-            ln = line_number(map_text, pattern)
-            passed = False
-            note = f"missing listener {evt} -> {target}"
-            failures.append((f".regional-bar listener {evt}", ln, note))
-        record(results, f".regional-bar has {evt} listener", passed, note)
-
-    touch_pattern = "event.pointerType === \"touch\""
-    if 'bar.addEventListener("pointerdown"' in map_text and touch_pattern in map_text:
+    wire_block = extract_block(map_text, "function wireRegionTooltip")
+    helper_ok = all(
+        evt in wire_block
+        for evt in [
+            "target.addEventListener(\"pointerenter\"",
+            "target.addEventListener(\"pointermove\"",
+            "target.addEventListener(\"pointerleave\"",
+            "target.addEventListener(\"pointerdown\"",
+            "event.pointerType === \"touch\"",
+        ]
+    )
+    if helper_ok:
         passed = True
         touch_note = None
     else:
-        touch_line = line_number(map_text, 'bar.addEventListener("pointerdown"')
+        touch_line = line_number(map_text, "function wireRegionTooltip")
         passed = False
-        touch_note = "missing touch fallback for pointerdown + event.pointerType === \"touch\""
-        failures.append(("Touch fallback listener", touch_line, touch_note))
-    record(results, "touch fallback uses pointerdown + pointerType === \"touch\"", passed, touch_note)
+        touch_note = "wireRegionTooltip missing required pointer bindings or touch fallback"
+        failures.append(("wireRegionTooltip has expected listeners", touch_line, touch_note))
+    record(results, "wireRegionTooltip has expected listeners + touch fallback", passed, touch_note)
+
+    for target in ("group", "bar"):
+        call_pattern = f"wireRegionTooltip({target}, region, mode)"
+        if call_pattern in compact_map:
+            passed = True
+            note = None
+        else:
+            ln = line_number(compact_map, "wireRegionTooltip(")
+            passed = False
+            note = f"missing call: {call_pattern}"
+            failures.append((f"wireRegionTooltip call for {target}", ln, note))
+        record(results, f"wireRegionTooltip called for {target}", passed, note)
 
     # 2) draw() calls hideTooltip at start
     draw_block = extract_block(map_text, "function draw() ")
@@ -181,14 +186,16 @@ def main() -> int:
             failures.append(("draw() calls hideTooltip at start", ln, note))
         record(results, "draw() calls hideTooltip at start", passed, note)
 
-    # 3) regional bar cursor + tabindex for interaction
-    if ".regional-bar" in map_text and 'class: "regional-bar"' in map_text:
-        pass
+    # 3) regional interaction zone cursor + tabindex
     bar_style_present = re.search(r"\.regional-bar\s*{[^}]*cursor:\s*pointer", index_text, re.S) is not None
+    mark_style_present = re.search(r"\.regional-mark\s*{[^}]*cursor:\s*pointer", index_text, re.S) is not None
     tabindex_present = "tabindex: \"0\"" in compact_map
     if not bar_style_present:
         ln = line_number(index_text, ".regional-bar")
         failures.append(("regional-bar cursor pointer", ln, "CSS rule missing: .regional-bar { cursor: pointer; }"))
+    if not mark_style_present:
+        ln = line_number(index_text, ".regional-mark")
+        failures.append(("regional-mark cursor pointer", ln, "CSS rule missing: .regional-mark { cursor: pointer; }"))
     if not tabindex_present:
         ln = line_number(map_text, "tabindex:")
         failures.append(("regional-bar tabindex", ln, "JS region bars missing tabindex for touch/keyboard-accessible interaction"))
@@ -197,7 +204,8 @@ def main() -> int:
         ln = line_number(index_text, ".regional-mark {")
         failures.append(("regional-mark keeps pointer events enabled", ln, "Wrapper element cannot disable pointer events on region bars"))
     record(results, "CSS sets regional bar pointer cursor", bar_style_present, None if bar_style_present else "missing")
-    record(results, "regional bar elements include tabindex", tabindex_present, None if tabindex_present else "missing")
+    record(results, "CSS sets regional mark pointer cursor", mark_style_present, None if mark_style_present else "missing")
+    record(results, "regional region elements include tabindex", tabindex_present, None if tabindex_present else "missing")
     record(results, "regional-mark wrapper does not disable pointer events", mark_pointer_ok, None if mark_pointer_ok else "found pointer-events: none")
 
     # 4) regional_data.js mapping + region/country keys + style references
@@ -248,12 +256,12 @@ def main() -> int:
     record(results, "every region has coordinates [lon, lat]", coordinate_ok, None)
 
     # 5) cache-bust tag in index.html
-    cache_ok = 'regional_map.js?v=4"' in index_text
-    cache_line = line_number(index_text, 'regional_map.js?v=4"')
-    cache_note = None if cache_ok else "regional_map.js cache-buster missing or not expected v=4"
+    cache_ok = 'regional_map.js?v=5"' in index_text
+    cache_line = line_number(index_text, 'regional_map.js?v=5"')
+    cache_note = None if cache_ok else "regional_map.js cache-buster missing or not expected v=5"
     if not cache_ok:
-        failures.append(("index cache-bust is regional_map.js?v=4", cache_line, cache_note))
-    record(results, "index.html regional_map.js includes ?v=4", cache_ok, cache_note)
+        failures.append(("index cache-bust is regional_map.js?v=5", cache_line, cache_note))
+    record(results, "index.html regional_map.js includes ?v=5", cache_ok, cache_note)
 
     # 6) negative/failing-mode regression test: tooltip null guard
     show_block = extract_function_block(map_text, "showTooltip")
