@@ -36,10 +36,10 @@ const offsets = {
     "Europe": [-10, -3],
     "Southeast Asia": [10, 39],
     "India": [-16, 34],
-    "East Asia ex-China": [11, 2],
+    "Japan, Korea & Taiwan": [11, 2],
     "Middle East": [-13, -12],
     "Latin America": [-12, 11],
-    "Australia & New Zealand": [-11, 8],
+    "Australia": [-11, 8],
   },
   narrow: {
     "China": [9, -18],
@@ -47,10 +47,10 @@ const offsets = {
     "Europe": [-7, -4],
     "Southeast Asia": [8, 39],
     "India": [-10, 31],
-    "East Asia ex-China": [9, 23],
+    "Japan, Korea & Taiwan": [9, 23],
     "Middle East": [-12, -17],
     "Latin America": [-8, 10],
-    "Australia & New Zealand": [9, 7],
+    "Australia": [9, 7],
   },
 };
 
@@ -135,7 +135,7 @@ function draw() {
     const anchor = dx < 0 ? "end" : "start";
     const displayName = narrow
       ? region.short
-      : region.name === "East Asia ex-China" ? "E Asia ex-China" : region.name;
+      : region.name;
 
     const bar = svgEl("rect", {
       class: "regional-bar",

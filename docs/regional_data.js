@@ -96,7 +96,7 @@ window.REGIONAL_COMPUTE = Object.freeze({
     },
     {
       "key": "east-asia",
-      "name": "East Asia ex-China",
+      "name": "Japan, Korea & Taiwan",
       "short": "EA",
       "coordinates": [
         139,
@@ -150,7 +150,7 @@ window.REGIONAL_COMPUTE = Object.freeze({
     },
     {
       "key": "anz",
-      "name": "Australia & New Zealand",
+      "name": "Australia",
       "short": "ANZ",
       "coordinates": [
         146,

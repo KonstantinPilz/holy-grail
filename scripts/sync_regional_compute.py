@@ -36,10 +36,10 @@ REGION_META = {
     "Europe": {"key": "europe", "short": "EU", "coordinates": [13, 51]},
     "SE Asia": {"key": "sea", "name": "Southeast Asia", "short": "SEA", "coordinates": [106, 7]},
     "India": {"key": "india", "short": "IN", "coordinates": [78, 22]},
-    "East Asia ex-China": {"key": "east-asia", "short": "EA", "coordinates": [139, 37]},
+    "East Asia ex-China": {"key": "east-asia", "name": "Japan, Korea & Taiwan", "short": "EA", "coordinates": [139, 37]},
     "Middle East": {"key": "middle-east", "short": "ME", "coordinates": [46, 27]},
     "Latin America": {"key": "latam", "short": "LATAM", "coordinates": [-60, -16]},
-    "Australia & NZ": {"key": "anz", "name": "Australia & New Zealand", "short": "ANZ", "coordinates": [146, -34]},
+    "Australia & NZ": {"key": "anz", "name": "Australia", "short": "ANZ", "coordinates": [146, -34]},
 }
 
 REGION_COUNTRIES = {
