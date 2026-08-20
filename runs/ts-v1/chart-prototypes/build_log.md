@@ -35,3 +35,12 @@
 - Pushed to `main`; GitHub Pages serves the repository's `docs/` directory.
 - The live page returned HTTP 200 and rendered four refreshed chart SVGs in headless Chromium with no browser errors on 2026-08-20.
 - Live URL: https://konstantinpilz.github.io/holy-grail/compute-over-time.html
+
+## Stacked-bar family (2026-08-20)
+
+- Added three discrete treatments above the original four prototypes while preserving the embedded aggregate data and the original reference charts.
+- Variant 1a uses four 130-pixel columns separated by 26 pixels, a gap equal to 20% of bar width, with direct 2026E labels for the United States, China, and Europe.
+- Variant 1b uses the same columns and labels, with quarter-opacity regional bands spanning only the gaps between adjacent years.
+- Variant 1c groups the seven smaller regions into a visual Rest segment and labels every displayed segment of at least 3%. The JavaScript data literal remains unpooled with all ten regions; the Rest membership is stated below the chart.
+- Updated automated checks cover page order, the three bar chart containers, the shared gap ratio, connector opacity, Rest disclosure, and preservation of all ten source series.
+- Headless Chromium rendered all seven charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1a.png`, `variant-1b.png`, and `variant-1c.png` for QA.

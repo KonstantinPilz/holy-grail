@@ -10,6 +10,11 @@ if (!fs.existsSync(pagePath)) {
 const html = fs.readFileSync(pagePath, "utf8");
 const requiredText = [
   '<meta name="robots" content="noindex, nofollow">',
+  "1. Stacked bars (variant 1 family — pick one)",
+  "1a. Plain 100% stacked columns",
+  "1b. Stacked columns with connectors",
+  "1c. Labeled columns",
+  "Rest = SE Asia, India, East Asia ex-China, Middle East, Latin America, Australia &amp; NZ, and Other.",
   "1. Epoch-style 100% stacked area",
   "2. China-focus annotated",
   "3. Share lines",
@@ -19,6 +24,9 @@ const requiredText = [
   "2021 and earlier",
   "China: 13.8% → 6.1%",
   "export controls bind while the U.S. buildout compounds",
+  'id="chart-1a"',
+  'id="chart-1b"',
+  'id="chart-1c"',
   'id="chart-1"',
   'id="chart-2"',
   'id="chart-3"',
@@ -43,6 +51,24 @@ for (const pattern of forbidden) {
 const match = html.match(/const DATA = (\{[\s\S]*?\n\s*\});\n\s*const REGION_ORDER/);
 if (!match) throw new Error("Could not locate embedded DATA literal");
 const data = vm.runInNewContext(`(${match[1]})`);
+
+const barFamilyIndex = html.indexOf("1. Stacked bars (variant 1 family — pick one)");
+const originalVariantIndex = html.indexOf("1. Epoch-style 100% stacked area");
+if (barFamilyIndex < 0 || originalVariantIndex < 0 || barFamilyIndex >= originalVariantIndex) {
+  throw new Error("The stacked-bar family must appear before the original variants");
+}
+if (!html.includes("const BAR_LAYOUT = { width: 130, gap: 26 }")) {
+  throw new Error("Expected a 20% inter-column gap in the shared bar layout");
+}
+if (!html.includes('opacity: .25')) {
+  throw new Error("Expected quarter-opacity connector bands in variant 1b");
+}
+if (Object.hasOwn(data.shares, "Rest")) {
+  throw new Error("Rest must be a visual grouping, not an embedded data series");
+}
+if (Object.keys(data.shares).length !== 10) {
+  throw new Error("Expected all ten underlying regional share series");
+}
 
 if (data.pulled !== "2026-08-20") throw new Error("Unexpected pull date");
 if (data.years.join(",") !== "2023,2024,2025,2026") throw new Error("Unexpected year series");

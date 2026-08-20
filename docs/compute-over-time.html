@@ -66,6 +66,11 @@
   }
   .prototype { padding: 30px 0 32px; border-top: 1px solid var(--border); }
   .prototype:first-of-type { border-top: 0; padding-top: 0; }
+  .bar-family { padding: 0 0 34px; }
+  .bar-family > h2 { margin-bottom: 16px; font-size: 21px; }
+  .bar-prototype { padding: 24px 0 28px; border-top: 1px solid var(--border); }
+  .bar-prototype:first-of-type { padding-top: 0; border-top: 0; }
+  h3 { margin: 0 0 5px; color: var(--text); font-size: 17px; line-height: 1.3; }
   .chart-head { margin-bottom: 12px; }
   h2 { margin: 0 0 5px; color: var(--text); font-size: 19px; line-height: 1.3; }
   .chart-subtitle { margin: 0; color: var(--text-2); font-size: 13.5px; line-height: 1.48; }
@@ -81,6 +86,7 @@
   .axis-unit { fill: var(--text-2); font-size: 11px; font-weight: 700; }
   .panel-label { fill: var(--text-2); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
   .area-label { fill: #ffffff; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 2px; }
+  .bar-value { fill: #ffffff; font-size: 10px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.22); stroke-width: 1.8px; }
   .end-label { font-size: 11px; font-weight: 500; }
   .callout-box { fill: var(--card); stroke: var(--border); stroke-width: 1; }
   .callout-title { fill: var(--text); font-size: 12px; font-weight: 700; }
@@ -89,10 +95,15 @@
   .total-line { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 4 3; }
   .total-label { fill: var(--text-2); font-size: 10.5px; font-weight: 700; }
   .footer-note { margin: 8px 0 0; color: var(--text-3); font-size: 11px; }
+  .bar-footnote { margin: 7px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.45; }
   @media (max-width: 620px) {
     .wrap { padding: 24px 12px 40px; }
     .prototype { padding: 26px 0 28px; }
+    .bar-family { padding-bottom: 28px; }
+    .bar-family > h2 { font-size: 19px; }
+    .bar-prototype { padding: 22px 0 25px; }
     h2 { font-size: 17px; }
+    h3 { font-size: 16px; }
     .chart-subtitle { font-size: 12.5px; }
   }
 </style>
@@ -105,6 +116,38 @@
     <p class="deck">Four views of the same regional estimate, from composition to absolute growth. Data pulled 20 August 2026.</p>
     <p class="scope-note">Scope: EOY 2023 includes shipments from 2022–2023. Chips shipped in 2021 and earlier are outside the model for every region; the model does not retire chips.</p>
   </header>
+
+  <section class="bar-family" aria-labelledby="title-bars">
+    <h2 id="title-bars">1. Stacked bars (variant 1 family — pick one)</h2>
+
+    <article class="bar-prototype" aria-labelledby="title-1a">
+      <div class="chart-head">
+        <h3 id="title-1a">1a. Plain 100% stacked columns</h3>
+        <p class="chart-subtitle">Share of deployed FP8 GB300-equivalent compute at each year-end. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+      </div>
+      <div class="chart" id="chart-1a"></div>
+      <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+    </article>
+
+    <article class="bar-prototype" aria-labelledby="title-1b">
+      <div class="chart-head">
+        <h3 id="title-1b">1b. Stacked columns with connectors</h3>
+        <p class="chart-subtitle">Share of deployed FP8 GB300-equivalent compute at each year-end. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+      </div>
+      <div class="chart" id="chart-1b"></div>
+      <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+    </article>
+
+    <article class="bar-prototype" aria-labelledby="title-1c">
+      <div class="chart-head">
+        <h3 id="title-1c">1c. Labeled columns</h3>
+        <p class="chart-subtitle">Share of deployed FP8 GB300-equivalent compute at each year-end. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+      </div>
+      <div class="chart" id="chart-1c"></div>
+      <p class="bar-footnote">Rest = SE Asia, India, East Asia ex-China, Middle East, Latin America, Australia &amp; NZ, and Other.</p>
+      <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+    </article>
+  </section>
 
   <section class="prototype" aria-labelledby="title-1">
     <div class="chart-head">
@@ -204,6 +247,7 @@
     "Other": "#b8b8b8"
   };
   const SHORT = { "East Asia ex-China": "East Asia ex-China", "Australia & NZ": "Australia & NZ" };
+  const BAR_LAYOUT = { width: 130, gap: 26 };
   const NS = "http://www.w3.org/2000/svg";
 
   function el(name, attrs = {}, text = null) {
@@ -277,6 +321,95 @@
       item.append(swatch, document.createTextNode(region));
       target.appendChild(item);
     });
+  }
+
+  function drawStackedBars(containerId, mode) {
+    const pooled = mode === "labeled";
+    const label = mode === "connectors"
+      ? "100 percent stacked columns with connector bands showing regional AI compute shares, 2023 to 2026"
+      : pooled
+        ? "Labeled 100 percent stacked columns showing regional AI compute shares, with smaller regions grouped as Rest, 2023 to 2026"
+        : "100 percent stacked columns showing regional AI compute shares, 2023 to 2026";
+    const svg = svgFor(containerId, 430, label);
+    const dims = { left: 138, right: 782, top: 26, bottom: 366 };
+    const totalWidth = BAR_LAYOUT.width * DATA.years.length + BAR_LAYOUT.gap * (DATA.years.length - 1);
+    const start = (920 - totalWidth) / 2;
+    const barX = index => start + index * (BAR_LAYOUT.width + BAR_LAYOUT.gap);
+    const y = value => dims.bottom - value / 100 * (dims.bottom - dims.top);
+
+    [0, 25, 50, 75, 100].forEach(value => {
+      svg.appendChild(el("line", { x1: dims.left, y1: y(value), x2: dims.right, y2: y(value), class: "grid-line" }));
+      addText(svg, dims.left - 10, y(value) + 4, `${value}%`, "axis-text", "end");
+    });
+    addText(svg, dims.left, 14, "Share of world", "axis-unit");
+    svg.appendChild(el("line", { x1: start, y1: dims.bottom, x2: start + totalWidth, y2: dims.bottom, class: "axis-line" }));
+    DATA.yearLabels.forEach((year, index) => addText(svg, barX(index) + BAR_LAYOUT.width / 2, dims.bottom + 22, year.replace("EOY ", ""), "axis-text", "middle"));
+
+    let order = REGION_ORDER;
+    let series = DATA.shares;
+    let colors = COLORS;
+    if (pooled) {
+      const restRegions = ["SE Asia", "India", "East Asia ex-China", "Middle East", "Latin America", "Australia & NZ", "Other"];
+      series = {
+        "USA": DATA.shares.USA,
+        "China": DATA.shares.China,
+        "Europe": DATA.shares.Europe,
+        "Rest": DATA.years.map((_, index) => restRegions.reduce((sum, region) => sum + DATA.shares[region][index], 0))
+      };
+      order = ["USA", "China", "Europe", "Rest"];
+      colors = { ...COLORS, "Rest": COLORS.Other };
+    }
+
+    const base = DATA.years.map(() => 0);
+    const layers = order.map(region => {
+      const y0 = base.slice();
+      series[region].forEach((value, index) => { base[index] += value; });
+      return { region, values: series[region], y0, y1: base.slice() };
+    });
+
+    if (mode === "connectors") {
+      layers.forEach(layer => {
+        for (let index = 0; index < DATA.years.length - 1; index += 1) {
+          const x1 = barX(index) + BAR_LAYOUT.width;
+          const x2 = barX(index + 1);
+          svg.appendChild(el("path", {
+            d: `M${x1},${y(layer.y1[index])} L${x2},${y(layer.y1[index + 1])} L${x2},${y(layer.y0[index + 1])} L${x1},${y(layer.y0[index])} Z`,
+            fill: colors[layer.region],
+            opacity: .25
+          }));
+        }
+      });
+    }
+
+    layers.forEach(layer => {
+      DATA.years.forEach((_, index) => {
+        const top = y(layer.y1[index]);
+        const bottom = y(layer.y0[index]);
+        const rect = el("rect", {
+          x: barX(index), y: top, width: BAR_LAYOUT.width, height: bottom - top,
+          fill: colors[layer.region], stroke: "var(--bg)", "stroke-width": 1
+        });
+        rect.appendChild(el("title", {}, `${layer.region}: ${DATA.yearLabels[index]} ${layer.values[index].toFixed(1)}%`));
+        svg.appendChild(rect);
+      });
+    });
+
+    if (pooled) {
+      layers.forEach(layer => {
+        DATA.years.forEach((_, index) => {
+          if (layer.values[index] < 3) return;
+          const middle = (layer.y0[index] + layer.y1[index]) / 2;
+          const text = index === DATA.years.length - 1 ? `${layer.region} ${layer.values[index].toFixed(1)}%` : `${layer.values[index].toFixed(1)}%`;
+          addText(svg, barX(index) + BAR_LAYOUT.width / 2, y(middle) + 3.5, text, "bar-value", "middle");
+        });
+      });
+    } else {
+      ["USA", "China", "Europe"].forEach(region => {
+        const layer = layers.find(item => item.region === region);
+        const middle = (layer.y0[3] + layer.y1[3]) / 2;
+        addText(svg, barX(3) + BAR_LAYOUT.width / 2, y(middle) + 4, `${region} ${layer.values[3].toFixed(1)}%`, "area-label", "middle");
+      });
+    }
   }
 
   function drawStackedShare(containerId, focused = false) {
@@ -417,6 +550,9 @@
     addText(svg, dims.right, 15, "World total at stack top", "axis-unit", "end");
   }
 
+  drawStackedBars("chart-1a", "plain");
+  drawStackedBars("chart-1b", "connectors");
+  drawStackedBars("chart-1c", "labeled");
   drawStackedShare("chart-1", false);
   addLegend("legend-1");
   drawStackedShare("chart-2", true);
