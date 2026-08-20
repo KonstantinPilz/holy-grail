@@ -19,7 +19,7 @@ const requiredText = [
   "Final candidate: 1e (consolidated)",
   "1f. Narrow bars with connectors (consolidated)",
   "Bar height is proportional to consolidated regional share",
-  "Every bar is labeled; shaded bands connect adjacent bar tops.",
+  "Every bar is labeled; faint lines connect adjacent bar tops and bottoms.",
   "Circle area is proportional to consolidated regional share",
   "Other combines East Asia ex-China (1.8%), India (1.5%), Australia &amp; NZ (0.7%), the prior Other category (0.7%), and Latin America (0.6%).",
   "Unrounded 2026E shares sum to 5.2%; the displayed component shares sum to approximately 5.3% because of rounding.",
@@ -134,14 +134,27 @@ if (!html.includes("const finalRowGap = 45")) {
 if (!html.includes('const FINAL_REGION_ORDER = ["USA", "Europe", "China", "SE Asia", "Middle East", "Other"]')) {
   throw new Error("Final variants must share the required six-row ordering");
 }
-if (!html.includes("const narrowBarWidth = 14")) {
-  throw new Error("Variant 1f bars must remain narrow");
+if (!html.includes("const centers = [150, 205, 260, 315]")) {
+  throw new Error("Variant 1f year columns must use the tightened spacing");
 }
-if (!html.includes("const connectorOpacity = .3")) {
-  throw new Error("Variant 1f connectors must use 0.30 opacity");
+if (!html.includes("const narrowBarWidth = 36")) {
+  throw new Error("Variant 1f bars must use the requested wider geometry");
 }
-if (!html.includes("heightForShare = value => value / 100 * 50")) {
+if (!html.includes("const rowGap = 42")) {
+  throw new Error("Variant 1f rows must use the tightened spacing");
+}
+if (!html.includes("const connectorOpacity = .24")) {
+  throw new Error("Variant 1f connector lines must remain faint");
+}
+if (!html.includes("heightForShare = value => value / 100 * 44")) {
   throw new Error("Variant 1f bar height must use one common linear share scale");
+}
+const variant1fFunction = html.slice(html.indexOf("function drawNarrowBarConnectors()"), html.indexOf("function drawCenteredRibbons()"));
+if (variant1fFunction.includes('el("polygon"')) {
+  throw new Error("Variant 1f must use connector lines rather than filled bands");
+}
+if (!variant1fFunction.includes("const top = centerY - height / 2") || !variant1fFunction.includes("const bottom = centerY + height / 2")) {
+  throw new Error("Variant 1f bars must be vertically centered on each row axis");
 }
 if (!html.includes('`${value.toFixed(1)}%`, "cell-value", "middle"')) {
   throw new Error("Final variants must render one-decimal share labels");

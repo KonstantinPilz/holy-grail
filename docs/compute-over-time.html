@@ -69,8 +69,8 @@
   .bar-family { padding: 0 0 34px; }
   .final-candidate { padding: 0 0 32px; }
   .final-candidate .chart { max-width: 600px; }
-  .connector-candidate { padding: 30px 0 32px; border-top: 1px solid var(--border); }
-  .connector-candidate .chart { max-width: 600px; }
+  .connector-candidate { padding: 22px 0 24px; border-top: 1px solid var(--border); }
+  .connector-candidate .chart { max-width: 520px; }
   .bar-family > h2 { margin-bottom: 16px; font-size: 21px; }
   .bar-prototype { padding: 24px 0 28px; border-top: 1px solid var(--border); }
   .bar-prototype:first-of-type { padding-top: 0; border-top: 0; }
@@ -143,10 +143,10 @@
   <section class="connector-candidate" aria-labelledby="title-final-1f">
     <div class="chart-head">
       <h2 id="title-final-1f">1f. Narrow bars with connectors (consolidated)</h2>
-      <p class="chart-subtitle">Bar height is proportional to consolidated regional share of deployed FP8 GB300-equivalent compute. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+      <p class="chart-subtitle">Bar height is proportional to consolidated regional share of deployed FP8 GB300-equivalent compute; bars are vertically centered within each row. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
     </div>
     <div class="chart" id="chart-final-1f"></div>
-    <p class="bar-footnote">Every bar is labeled; shaded bands connect adjacent bar tops. Other uses the same consolidated definition as the final candidate above.</p>
+    <p class="bar-footnote">Every bar is labeled; faint lines connect adjacent bar tops and bottoms. Other uses the same consolidated definition as the final candidate above.</p>
     <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
   </section>
 
@@ -562,42 +562,43 @@
   }
 
   function drawNarrowBarConnectors() {
-    const svg = svgFor("chart-final-1f", 360, "Six consolidated regional AI compute share trends shown as narrow annual bars connected at their tops, 2023 to 2026");
-    svg.setAttribute("viewBox", "0 0 520 360");
+    const svg = svgFor("chart-final-1f", 290, "Six consolidated regional AI compute share trends shown as centered annual bars with lines tracing their top and bottom edges, 2023 to 2026");
+    svg.setAttribute("viewBox", "0 0 360 290");
     const consolidated = finalConsolidatedShares();
-    const centers = [150, 240, 330, 420];
-    const rowStart = 78;
-    const rowGap = 50;
-    const narrowBarWidth = 14;
-    const connectorOpacity = .3;
-    const connectorHalfThickness = 2;
-    const heightForShare = value => value / 100 * 50;
+    const centers = [150, 205, 260, 315];
+    const rowStart = 60;
+    const rowGap = 42;
+    const narrowBarWidth = 36;
+    const connectorOpacity = .24;
+    const heightForShare = value => value / 100 * 44;
 
     addText(svg, 18, 18, "Region", "axis-unit");
     DATA.yearLabels.forEach((label, index) => addText(svg, centers[index], 18, label.replace("EOY ", ""), "axis-unit", "middle"));
 
     FINAL_REGION_ORDER.forEach((region, rowIndex) => {
-      const baseline = rowStart + rowIndex * rowGap;
+      const centerY = rowStart + rowIndex * rowGap;
       const values = consolidated[region];
-      const tops = values.map(value => baseline - heightForShare(value));
-      addText(svg, 18, baseline - 12, regionLabel(region), "row-label");
-      svg.appendChild(el("line", { x1: centers[0] - narrowBarWidth / 2, y1: baseline, x2: centers[3] + narrowBarWidth / 2, y2: baseline, class: "grid-line" }));
+      const geometry = values.map(value => {
+        const height = heightForShare(value);
+        const top = centerY - height / 2;
+        const bottom = centerY + height / 2;
+        return { height, top, bottom };
+      });
+      addText(svg, 8, centerY + 4, regionLabel(region), "row-label");
+      svg.appendChild(el("line", { x1: centers[0] - narrowBarWidth / 2, y1: centerY, x2: centers[3] + narrowBarWidth / 2, y2: centerY, class: "grid-line" }));
 
       for (let index = 0; index < centers.length - 1; index += 1) {
         const leftX = centers[index] + narrowBarWidth / 2;
         const rightX = centers[index + 1] - narrowBarWidth / 2;
-        svg.appendChild(el("polygon", {
-          points: `${leftX},${tops[index] - connectorHalfThickness} ${rightX},${tops[index + 1] - connectorHalfThickness} ${rightX},${tops[index + 1] + connectorHalfThickness} ${leftX},${tops[index] + connectorHalfThickness}`,
-          fill: COLORS[region],
-          opacity: connectorOpacity
-        }));
+        svg.appendChild(el("line", { x1: leftX, y1: geometry[index].top, x2: rightX, y2: geometry[index + 1].top, stroke: COLORS[region], "stroke-width": 1.1, opacity: connectorOpacity }));
+        svg.appendChild(el("line", { x1: leftX, y1: geometry[index].bottom, x2: rightX, y2: geometry[index + 1].bottom, stroke: COLORS[region], "stroke-width": 1.1, opacity: connectorOpacity }));
       }
 
       values.forEach((value, yearIndex) => {
-        const height = heightForShare(value);
+        const { height, top } = geometry[yearIndex];
         const bar = el("rect", {
           x: centers[yearIndex] - narrowBarWidth / 2,
-          y: tops[yearIndex],
+          y: top,
           width: narrowBarWidth,
           height,
           rx: 1,
@@ -606,7 +607,7 @@
         });
         bar.appendChild(el("title", {}, `${region}: ${DATA.yearLabels[yearIndex]} ${value.toFixed(1)}%`));
         svg.appendChild(bar);
-        addText(svg, centers[yearIndex], tops[yearIndex] - 6, `${value.toFixed(1)}%`, "cell-value", "middle");
+        addText(svg, centers[yearIndex], top - 5, `${value.toFixed(1)}%`, "cell-value", "middle");
       });
     });
   }

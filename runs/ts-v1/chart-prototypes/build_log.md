@@ -86,3 +86,12 @@
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1f.png`. The refreshed `final-candidate-1e.png` records the newly visible Middle East labels.
 - Published in commit `690973a` (`Add consolidated narrow-bar connector variant`) and pushed to `main`.
 - GitHub Pages updated on the third polling attempt. Live browser QA returned HTTP 200, rendered twelve SVGs with zero console or page errors, confirmed the repaired Middle East labels, and retained the noindex directive.
+
+## Consolidated narrow-bar connector revision (2026-08-20)
+
+- Revised variant 1f in place while preserving its title, six-row order, flags, colors, data, and all-value labels.
+- Increased the annual bars from 14 to 36 view-box units (2.6×). Year centers are 55 units apart, leaving 19-unit gaps—narrower than the bars.
+- Centered every bar vertically on its region's row axis. The same linear scale governs every row, so the top and bottom edges move symmetrically as a share changes.
+- Replaced each filled connector band with two 1.1-unit lines at 24% opacity: one joins adjacent tops and the other joins adjacent bottoms.
+- Reduced the chart view box from 520×360 to 360×290, row spacing from 50 to 42 units, and the chart display cap from 600 to 520 pixels.
+- Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection found no clipped labels, overlaps, or residual filled connector bands.
