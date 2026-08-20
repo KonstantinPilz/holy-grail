@@ -54,3 +54,5 @@
 - The internal hand-off table gives the cumulative smuggling component an indicative p10/p50/p90 of 297,795 / 616,033 / 1,315,608 GB300e and total China stock of 852,405 / 1,199,574 / 1,941,148. Same-tail indicative division gives 297,795 ÷ 852,405 = 34.94% and 1,315,608 ÷ 1,941,148 = 67.77%, displayed as roughly 35–68%.
 - The chart also reports the separate 2026 smuggling-flow 80% interval of 167,576–742,886 GB300e. A whisker spans the indicative stock-share interval, and a dashed line ties its 51.4% median to the smuggled segment boundary.
 - Browser QA rendered eight SVG charts with no console or page errors and no horizontal overflow at 390 pixels. Native color flags rendered correctly in both SVG labels and HTML legends. Saved `china-origin.png` and `flagged-variant-1a.png` for QA.
+- Published in commit `137542e` (`Add flags and China compute origin chart`) and pushed to `main`.
+- GitHub Pages updated on the fourth polling attempt. Live browser QA returned HTTP 200, rendered eight SVGs and fourteen flagged legend entries with zero console or page errors, and preserved the noindex directive.
