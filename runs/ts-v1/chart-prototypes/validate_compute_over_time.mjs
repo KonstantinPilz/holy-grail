@@ -138,8 +138,11 @@ if (!html.includes('const FINAL_REGION_ORDER = ["USA", "Europe", "China", "SE As
 if (!html.includes('const FINAL_1F_REGION_ORDER = ["USA", "China", "Europe", "SE Asia", "Middle East", "Other"]')) {
   throw new Error("Variant 1f must place China above Europe");
 }
-if (!html.includes("const centers = [145, 195, 245, 295]")) {
+if (!html.includes("const centers = [145, 181, 217, 253]")) {
   throw new Error("Variant 1f year columns must use the tightened spacing");
+}
+if (!html.includes(".connector-candidate .chart { max-width: 420px; }")) {
+  throw new Error("Variant 1f display width must shrink with the year spacing");
 }
 if (!html.includes("const narrowBarWidth = 14")) {
   throw new Error("Variant 1f bars must use the requested slim geometry");
@@ -157,7 +160,7 @@ if (!html.includes("const minVisibleHeight = 2")) {
   throw new Error("Variant 1f must keep the smallest regional bars clearly visible");
 }
 const variant1fFunction = html.slice(html.indexOf("function drawNarrowBarConnectors()"), html.indexOf("function drawCenteredRibbons()"));
-if (!variant1fFunction.includes('svg.setAttribute("viewBox", "0 0 330 334")') || !variant1fFunction.includes("const rowStart = 74")) {
+if (!variant1fFunction.includes('svg.setAttribute("viewBox", "0 0 288 334")') || !variant1fFunction.includes("const rowStart = 74")) {
   throw new Error("Variant 1f must preserve clear space below the year headers");
 }
 if (variant1fFunction.includes('el("polygon"')) {

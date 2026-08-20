@@ -124,3 +124,10 @@
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed twelve total connector lines, correct middle-bar occlusion, and no clipping or overlap.
 - Published in commit `a89798a` (`Connect first and last bars in variant 1f`) and pushed to `main`.
 - GitHub Pages updated on the third polling attempt. Live browser QA returned HTTP 200 and confirmed twelve connector lines spanning x=145 to x=295, correct below-bar SVG ordering for every region, 24 bars, 24 labels, zero browser errors, and the noindex directive.
+
+## Consolidated horizontal-spacing revision (2026-08-20)
+
+- Revised variant 1f in place by reducing year-center spacing from 50 to 36 view-box units. The four-year span contracts from 150 to 108 units (28%), and the gap between 14-unit bars falls from 36 to 22 units (39%).
+- Tightened the view box from 330 to 288 units and the display cap from 480 to 420 pixels. Those proportional changes keep rendered bar width effectively unchanged while narrowing the chart and steepening the 2023-to-2026E envelopes.
+- Moved the year headers and percentage labels with their bars. Vertical spacing, centered alignment, row order, bar heights, connectors, colors, flags, data, and all other page content remain unchanged.
+- Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed readable headers and labels, unchanged bar width, and more salient trend slopes.

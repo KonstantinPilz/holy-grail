@@ -70,7 +70,7 @@
   .final-candidate { padding: 0 0 32px; }
   .final-candidate .chart { max-width: 600px; }
   .connector-candidate { padding: 22px 0 24px; border-top: 1px solid var(--border); }
-  .connector-candidate .chart { max-width: 480px; }
+  .connector-candidate .chart { max-width: 420px; }
   .bar-family > h2 { margin-bottom: 16px; font-size: 21px; }
   .bar-prototype { padding: 24px 0 28px; border-top: 1px solid var(--border); }
   .bar-prototype:first-of-type { padding-top: 0; border-top: 0; }
@@ -564,9 +564,9 @@
 
   function drawNarrowBarConnectors() {
     const svg = svgFor("chart-final-1f", 334, "Six consolidated regional AI compute share trends shown as slim centered annual bars with lines tracing their top and bottom edges, 2023 to 2026");
-    svg.setAttribute("viewBox", "0 0 330 334");
+    svg.setAttribute("viewBox", "0 0 288 334");
     const consolidated = finalConsolidatedShares();
-    const centers = [145, 195, 245, 295];
+    const centers = [145, 181, 217, 253];
     const rowStart = 74;
     const rowGap = 48;
     const narrowBarWidth = 14;
