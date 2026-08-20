@@ -44,3 +44,5 @@
 - Variant 1c groups the seven smaller regions into a visual Rest segment and labels every displayed segment of at least 3%. The JavaScript data literal remains unpooled with all ten regions; the Rest membership is stated below the chart.
 - Updated automated checks cover page order, the three bar chart containers, the shared gap ratio, connector opacity, Rest disclosure, and preservation of all ten source series.
 - Headless Chromium rendered all seven charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1a.png`, `variant-1b.png`, and `variant-1c.png` for QA.
+- Published in commit `6ae962d` (`Add stacked bar chart prototypes`) and pushed to `main`.
+- GitHub Pages updated on the fourth polling attempt. A fresh headless-Chromium render of the live URL produced three bar-family SVGs and four original-variant SVGs while preserving the noindex directive.
