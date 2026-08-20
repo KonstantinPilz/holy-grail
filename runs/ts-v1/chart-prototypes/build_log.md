@@ -1,6 +1,6 @@
 # Compute-over-time chart prototypes — build log
 
-- **Status:** Built and validated locally; publication status is recorded below.
+- **Status:** Published and live-verified.
 - **Target URL:** https://konstantinpilz.github.io/holy-grail/compute-over-time.html
 - **Data pull:** Live appendix pulled 2026-08-20. Publication-safe aggregate regional shares, aggregate regional GB300e totals, and 2026 p10/p90 share endpoints only.
 - **Source definitions:** EOY 2023–2025 are year-end cumulative estimates. EOY 2026E includes production and inflows through Q3 2026. The model excludes chips shipped in 2021 or earlier and does not retire chips.
@@ -30,4 +30,7 @@
 
 ## Publication
 
-- Pending commit, push, and live URL verification.
+- Page commit: `c5356d3` (`Add regional AI compute chart prototypes`).
+- Pushed to `main`; GitHub Pages serves the repository's `docs/` directory.
+- Live URL returned HTTP 200 and rendered all chart SVGs in headless Chromium on 2026-08-20.
+- Live URL: https://konstantinpilz.github.io/holy-grail/compute-over-time.html
