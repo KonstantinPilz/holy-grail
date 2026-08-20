@@ -76,3 +76,11 @@
 - Browser QA rendered all eleven SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `final-candidate-1e.png`. Visual inspection found no clipped labels or overlapping circles.
 - Published in commit `748c2eb` (`Promote consolidated circle grid candidate`) and pushed to `main`.
 - GitHub Pages updated on the sixth polling attempt. Live browser QA returned HTTP 200, confirmed the final candidate is the first section, preserved the original 1e, rendered eleven SVGs with zero console or page errors, and retained the noindex directive.
+
+## Consolidated narrow-bar connectors (2026-08-20)
+
+- Added variant 1f directly beneath the final circle-grid candidate, using the same six rows, regional colors, flags, and unrounded consolidated series.
+- Each row is a bottom-aligned mini bar chart on one common linear scale. Fourteen-unit-wide annual bars are connected by four-unit-thick ribbons at 30% opacity; the ribbons track the exact bar-top slope between years.
+- Labeled every bar to one decimal, including shares below 1%. The live appendix still reports Middle East at 0.7925% in 2023 and 0.9100% in 2025, which display as 0.8% and 0.9%; those true values are now visible in both the final circle grid and variant 1f.
+- Updated automated checks cover section placement, the shared six-row order, narrow bar width, connector opacity, common linear scale, and all-value labels.
+- Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1f.png`. The refreshed `final-candidate-1e.png` records the newly visible Middle East labels.

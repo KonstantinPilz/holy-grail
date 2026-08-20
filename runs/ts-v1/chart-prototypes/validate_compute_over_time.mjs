@@ -17,6 +17,9 @@ const requiredText = [
   "1d. Centered ribbons",
   "1e. Circle grid",
   "Final candidate: 1e (consolidated)",
+  "1f. Narrow bars with connectors (consolidated)",
+  "Bar height is proportional to consolidated regional share",
+  "Every bar is labeled; shaded bands connect adjacent bar tops.",
   "Circle area is proportional to consolidated regional share",
   "Other combines East Asia ex-China (1.8%), India (1.5%), Australia &amp; NZ (0.7%), the prior Other category (0.7%), and Latin America (0.6%).",
   "Unrounded 2026E shares sum to 5.2%; the displayed component shares sum to approximately 5.3% because of rounding.",
@@ -49,6 +52,7 @@ const requiredText = [
   'id="chart-1d"',
   'id="chart-1e"',
   'id="chart-final-1e"',
+  'id="chart-final-1f"',
   'id="chart-origin"',
   'id="chart-1"',
   'id="chart-2"',
@@ -93,13 +97,14 @@ if (origin.share80.p10 !== 34.93589687830025 || origin.share80.p90 !== 67.774752
 
 const barFamilyIndex = html.indexOf("1. Stacked bars (variant 1 family — pick one)");
 const finalCandidateIndex = html.indexOf("Final candidate: 1e (consolidated)");
+const finalConnectorIndex = html.indexOf("1f. Narrow bars with connectors (consolidated)");
 const variant1cIndex = html.indexOf("1c. Labeled columns");
 const variant1dIndex = html.indexOf("1d. Centered ribbons");
 const variant1eIndex = html.indexOf("1e. Circle grid");
 const originIndex = html.indexOf("China's 2026 compute by origin");
 const originalVariantIndex = html.indexOf("1. Epoch-style 100% stacked area");
-if ([finalCandidateIndex, barFamilyIndex, variant1cIndex, variant1dIndex, variant1eIndex, originIndex, originalVariantIndex].some(index => index < 0)
-    || !(finalCandidateIndex < barFamilyIndex && barFamilyIndex < variant1cIndex && variant1cIndex < variant1dIndex && variant1dIndex < variant1eIndex && variant1eIndex < originIndex && originIndex < originalVariantIndex)) {
+if ([finalCandidateIndex, finalConnectorIndex, barFamilyIndex, variant1cIndex, variant1dIndex, variant1eIndex, originIndex, originalVariantIndex].some(index => index < 0)
+    || !(finalCandidateIndex < finalConnectorIndex && finalConnectorIndex < barFamilyIndex && barFamilyIndex < variant1cIndex && variant1cIndex < variant1dIndex && variant1dIndex < variant1eIndex && variant1eIndex < originIndex && originIndex < originalVariantIndex)) {
   throw new Error("The bar variants, China-origin figure, and original variants are out of order");
 }
 if (!html.includes("const BAR_LAYOUT = { width: 130, gap: 26 }")) {
@@ -125,6 +130,21 @@ if (!html.includes("const finalCenters = [150, 240, 330, 420]")) {
 }
 if (!html.includes("const finalRowGap = 45")) {
   throw new Error("Expected compact row spacing in the final candidate");
+}
+if (!html.includes('const FINAL_REGION_ORDER = ["USA", "Europe", "China", "SE Asia", "Middle East", "Other"]')) {
+  throw new Error("Final variants must share the required six-row ordering");
+}
+if (!html.includes("const narrowBarWidth = 14")) {
+  throw new Error("Variant 1f bars must remain narrow");
+}
+if (!html.includes("const connectorOpacity = .3")) {
+  throw new Error("Variant 1f connectors must use 0.30 opacity");
+}
+if (!html.includes("heightForShare = value => value / 100 * 50")) {
+  throw new Error("Variant 1f bar height must use one common linear share scale");
+}
+if (!html.includes('`${value.toFixed(1)}%`, "cell-value", "middle"')) {
+  throw new Error("Final variants must render one-decimal share labels");
 }
 if (Object.hasOwn(data.shares, "Rest")) {
   throw new Error("Rest must be a visual grouping, not an embedded data series");

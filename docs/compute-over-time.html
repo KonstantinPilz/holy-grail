@@ -69,6 +69,8 @@
   .bar-family { padding: 0 0 34px; }
   .final-candidate { padding: 0 0 32px; }
   .final-candidate .chart { max-width: 600px; }
+  .connector-candidate { padding: 30px 0 32px; border-top: 1px solid var(--border); }
+  .connector-candidate .chart { max-width: 600px; }
   .bar-family > h2 { margin-bottom: 16px; font-size: 21px; }
   .bar-prototype { padding: 24px 0 28px; border-top: 1px solid var(--border); }
   .bar-prototype:first-of-type { padding-top: 0; border-top: 0; }
@@ -135,6 +137,16 @@
     </div>
     <div class="chart" id="chart-final-1e"></div>
     <p class="bar-footnote">Other combines East Asia ex-China (1.8%), India (1.5%), Australia &amp; NZ (0.7%), the prior Other category (0.7%), and Latin America (0.6%). Unrounded 2026E shares sum to 5.2%; the displayed component shares sum to approximately 5.3% because of rounding.</p>
+    <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+  </section>
+
+  <section class="connector-candidate" aria-labelledby="title-final-1f">
+    <div class="chart-head">
+      <h2 id="title-final-1f">1f. Narrow bars with connectors (consolidated)</h2>
+      <p class="chart-subtitle">Bar height is proportional to consolidated regional share of deployed FP8 GB300-equivalent compute. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+    </div>
+    <div class="chart" id="chart-final-1f"></div>
+    <p class="bar-footnote">Every bar is labeled; shaded bands connect adjacent bar tops. Other uses the same consolidated definition as the final candidate above.</p>
     <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
   </section>
 
@@ -320,6 +332,7 @@
     "Australia & NZ": "🇦🇺🇳🇿"
   };
   const FINAL_OTHER_REGIONS = ["East Asia ex-China", "India", "Australia & NZ", "Other", "Latin America"];
+  const FINAL_REGION_ORDER = ["USA", "Europe", "China", "SE Asia", "Middle East", "Other"];
   const SHORT = { "East Asia ex-China": "East Asia ex-China", "Australia & NZ": "Australia & NZ" };
   const BAR_LAYOUT = { width: 130, gap: 26 };
   const NS = "http://www.w3.org/2000/svg";
@@ -509,14 +522,8 @@
     return REGION_ORDER.slice().sort((a, b) => DATA.shares[b][3] - DATA.shares[a][3]);
   }
 
-  function drawFinalCircleGrid() {
-    const svg = svgFor("chart-final-1e", 340, "Compact grid of six consolidated regional AI compute shares by year, with circle area proportional to share, 2023 to 2026");
-    svg.setAttribute("viewBox", "0 0 520 340");
-    const finalCenters = [150, 240, 330, 420];
-    const finalRowGap = 45;
-    const rowStart = 64;
-    const radiusForShare = value => Math.sqrt(value / 100) * 32.5;
-    const consolidated = {
+  function finalConsolidatedShares() {
+    return {
       "USA": DATA.shares.USA,
       "Europe": DATA.shares.Europe,
       "China": DATA.shares.China,
@@ -524,7 +531,16 @@
       "Middle East": DATA.shares["Middle East"],
       "Other": DATA.years.map((_, yearIndex) => FINAL_OTHER_REGIONS.reduce((sum, region) => sum + DATA.shares[region][yearIndex], 0))
     };
-    const rows = ["USA", "Europe", "China", "SE Asia", "Middle East", "Other"];
+  }
+
+  function drawFinalCircleGrid() {
+    const svg = svgFor("chart-final-1e", 340, "Compact grid of six consolidated regional AI compute shares by year, with circle area proportional to share, 2023 to 2026");
+    svg.setAttribute("viewBox", "0 0 520 340");
+    const finalCenters = [150, 240, 330, 420];
+    const finalRowGap = 45;
+    const rowStart = 64;
+    const radiusForShare = value => Math.sqrt(value / 100) * 32.5;
+    const consolidated = finalConsolidatedShares();
 
     addText(svg, 18, 18, "Region", "axis-unit");
     DATA.yearLabels.forEach((label, index) => {
@@ -532,7 +548,7 @@
       svg.appendChild(el("line", { x1: finalCenters[index], y1: 34, x2: finalCenters[index], y2: 314, class: "grid-line" }));
     });
 
-    rows.forEach((region, rowIndex) => {
+    FINAL_REGION_ORDER.forEach((region, rowIndex) => {
       const centerY = rowStart + rowIndex * finalRowGap;
       addText(svg, 18, centerY + 4, regionLabel(region), "row-label");
       consolidated[region].forEach((value, yearIndex) => {
@@ -540,7 +556,57 @@
         const circle = el("circle", { cx: finalCenters[yearIndex], cy: centerY, r: radius, fill: COLORS[region], opacity: .92 });
         circle.appendChild(el("title", {}, `${region}: ${DATA.yearLabels[yearIndex]} ${value.toFixed(1)}%`));
         svg.appendChild(circle);
-        if (value >= 1) addText(svg, finalCenters[yearIndex] + radius + 5, centerY + 3.5, `${value.toFixed(1)}%`, "cell-value");
+        addText(svg, finalCenters[yearIndex] + radius + 5, centerY + 3.5, `${value.toFixed(1)}%`, "cell-value");
+      });
+    });
+  }
+
+  function drawNarrowBarConnectors() {
+    const svg = svgFor("chart-final-1f", 360, "Six consolidated regional AI compute share trends shown as narrow annual bars connected at their tops, 2023 to 2026");
+    svg.setAttribute("viewBox", "0 0 520 360");
+    const consolidated = finalConsolidatedShares();
+    const centers = [150, 240, 330, 420];
+    const rowStart = 78;
+    const rowGap = 50;
+    const narrowBarWidth = 14;
+    const connectorOpacity = .3;
+    const connectorHalfThickness = 2;
+    const heightForShare = value => value / 100 * 50;
+
+    addText(svg, 18, 18, "Region", "axis-unit");
+    DATA.yearLabels.forEach((label, index) => addText(svg, centers[index], 18, label.replace("EOY ", ""), "axis-unit", "middle"));
+
+    FINAL_REGION_ORDER.forEach((region, rowIndex) => {
+      const baseline = rowStart + rowIndex * rowGap;
+      const values = consolidated[region];
+      const tops = values.map(value => baseline - heightForShare(value));
+      addText(svg, 18, baseline - 12, regionLabel(region), "row-label");
+      svg.appendChild(el("line", { x1: centers[0] - narrowBarWidth / 2, y1: baseline, x2: centers[3] + narrowBarWidth / 2, y2: baseline, class: "grid-line" }));
+
+      for (let index = 0; index < centers.length - 1; index += 1) {
+        const leftX = centers[index] + narrowBarWidth / 2;
+        const rightX = centers[index + 1] - narrowBarWidth / 2;
+        svg.appendChild(el("polygon", {
+          points: `${leftX},${tops[index] - connectorHalfThickness} ${rightX},${tops[index + 1] - connectorHalfThickness} ${rightX},${tops[index + 1] + connectorHalfThickness} ${leftX},${tops[index] + connectorHalfThickness}`,
+          fill: COLORS[region],
+          opacity: connectorOpacity
+        }));
+      }
+
+      values.forEach((value, yearIndex) => {
+        const height = heightForShare(value);
+        const bar = el("rect", {
+          x: centers[yearIndex] - narrowBarWidth / 2,
+          y: tops[yearIndex],
+          width: narrowBarWidth,
+          height,
+          rx: 1,
+          fill: COLORS[region],
+          opacity: .94
+        });
+        bar.appendChild(el("title", {}, `${region}: ${DATA.yearLabels[yearIndex]} ${value.toFixed(1)}%`));
+        svg.appendChild(bar);
+        addText(svg, centers[yearIndex], tops[yearIndex] - 6, `${value.toFixed(1)}%`, "cell-value", "middle");
       });
     });
   }
@@ -807,6 +873,7 @@
   }
 
   drawFinalCircleGrid();
+  drawNarrowBarConnectors();
   drawStackedBars("chart-1a", "plain");
   drawStackedBars("chart-1b", "connectors");
   drawStackedBars("chart-1c", "labeled");
