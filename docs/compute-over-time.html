@@ -80,6 +80,7 @@
   .legend { display: flex; flex-wrap: wrap; gap: 7px 15px; margin-top: 9px; }
   .legend-item { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 11.5px; }
   .swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+  .flag { margin-right: -2px; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; font-size: .92em; }
   .grid-line { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
   .axis-line { stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; }
   .axis-text { fill: var(--text-3); font-size: 11px; }
@@ -87,6 +88,9 @@
   .panel-label { fill: var(--text-2); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
   .area-label { fill: #ffffff; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 2px; }
   .bar-value { fill: #ffffff; font-size: 10px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.22); stroke-width: 1.8px; }
+  .origin-prototype { padding: 30px 0 32px; border-top: 1px solid var(--border); }
+  .origin-label { fill: #ffffff; font-size: 10.5px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 1.8px; }
+  .origin-interval { fill: var(--text-2); font-size: 11px; font-weight: 500; }
   .end-label { font-size: 11px; font-weight: 500; }
   .callout-box { fill: var(--card); stroke: var(--border); stroke-width: 1; }
   .callout-title { fill: var(--text); font-size: 12px; font-weight: 700; }
@@ -96,12 +100,14 @@
   .total-label { fill: var(--text-2); font-size: 10.5px; font-weight: 700; }
   .footer-note { margin: 8px 0 0; color: var(--text-3); font-size: 11px; }
   .bar-footnote { margin: 7px 0 0; color: var(--text-3); font-size: 11px; line-height: 1.45; }
+  .uncertainty-note { margin: 7px 0 0; color: var(--text-2); font-size: 12px; line-height: 1.45; }
   @media (max-width: 620px) {
     .wrap { padding: 24px 12px 40px; }
     .prototype { padding: 26px 0 28px; }
     .bar-family { padding-bottom: 28px; }
     .bar-family > h2 { font-size: 19px; }
     .bar-prototype { padding: 22px 0 25px; }
+    .origin-prototype { padding: 26px 0 28px; }
     h2 { font-size: 17px; }
     h3 { font-size: 16px; }
     .chart-subtitle { font-size: 12.5px; }
@@ -149,6 +155,16 @@
     </article>
   </section>
 
+  <section class="origin-prototype" aria-labelledby="title-origin">
+    <div class="chart-head">
+      <h2 id="title-origin">China's 2026 compute by origin</h2>
+      <p class="chart-subtitle">Composition of deployed FP8 GB300-equivalent compute. Chips deployed by EOY 2026; production through Q3, smuggling full-year. Aggregate inputs from TrendForce and Epoch.</p>
+    </div>
+    <div class="chart" id="chart-origin"></div>
+    <p class="uncertainty-note">The smuggled share is the most uncertain component; 80% interval roughly 35–68% of China's stock.</p>
+    <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+  </section>
+
   <section class="prototype" aria-labelledby="title-1">
     <div class="chart-head">
       <h2 id="title-1">1. Epoch-style 100% stacked area</h2>
@@ -191,6 +207,19 @@
 </main>
 
 <script>
+  const CHINA_ORIGIN = {
+    pulled: "2026-08-20",
+    total: 1199574.007520285,
+    components: [
+      { name: "Domestic production", value: 431327.8250544232, color: "#c6523d" },
+      { name: "Legal Western imports", value: 152213.55630318623, color: "#65758b" },
+      { name: "Smuggled Western chips", value: 616032.6261626757, color: "#d5a147" }
+    ],
+    smuggling2026Flow80: { p10: 167576.416, p50: 347320, p90: 742886.404 },
+    smugglingStock80: { p10: 297795.416, p50: 616032.6261626757, p90: 1315608.404 },
+    totalStock80: { p10: 852405.2410544234, p50: 1199574.007520285, p90: 1941148.2290544235 },
+    share80: { p10: 34.93589687830025, p50: 51.3542826287238, p90: 67.7747522990999 }
+  };
   const DATA = {
     pulled: "2026-08-20",
     years: [2023, 2024, 2025, 2026],
@@ -246,6 +275,15 @@
     "Australia & NZ": "#b56c92",
     "Other": "#b8b8b8"
   };
+  const FLAGS = {
+    "USA": "🇺🇸",
+    "China": "🇨🇳",
+    "Europe": "🇪🇺",
+    "SE Asia": "🇲🇾🇸🇬",
+    "India": "🇮🇳",
+    "East Asia ex-China": "🇯🇵🇰🇷🇹🇼",
+    "Australia & NZ": "🇦🇺🇳🇿"
+  };
   const SHORT = { "East Asia ex-China": "East Asia ex-China", "Australia & NZ": "Australia & NZ" };
   const BAR_LAYOUT = { width: 130, gap: 26 };
   const NS = "http://www.w3.org/2000/svg";
@@ -270,6 +308,17 @@
     const node = el("text", { x, y, class: className, "text-anchor": anchor }, text);
     svg.appendChild(node);
     return node;
+  }
+
+  function regionLabel(region) {
+    return FLAGS[region] ? `${FLAGS[region]} ${region}` : region;
+  }
+
+  function addMultilineText(svg, x, y, lines, className, lineHeight = 14) {
+    const text = el("text", { x, y, class: className, "text-anchor": "middle" });
+    lines.forEach((line, index) => text.appendChild(el("tspan", { x, dy: index ? lineHeight : 0 }, line)));
+    svg.appendChild(text);
+    return text;
   }
 
   function linePath(points) {
@@ -318,7 +367,15 @@
       const swatch = document.createElement("span");
       swatch.className = "swatch";
       swatch.style.background = COLORS[region];
-      item.append(swatch, document.createTextNode(region));
+      item.appendChild(swatch);
+      if (FLAGS[region]) {
+        const flag = document.createElement("span");
+        flag.className = "flag";
+        flag.setAttribute("aria-hidden", "true");
+        flag.textContent = FLAGS[region];
+        item.appendChild(flag);
+      }
+      item.appendChild(document.createTextNode(region));
       target.appendChild(item);
     });
   }
@@ -399,7 +456,7 @@
         DATA.years.forEach((_, index) => {
           if (layer.values[index] < 3) return;
           const middle = (layer.y0[index] + layer.y1[index]) / 2;
-          const text = index === DATA.years.length - 1 ? `${layer.region} ${layer.values[index].toFixed(1)}%` : `${layer.values[index].toFixed(1)}%`;
+          const text = index === DATA.years.length - 1 ? `${regionLabel(layer.region)} ${layer.values[index].toFixed(1)}%` : `${layer.values[index].toFixed(1)}%`;
           addText(svg, barX(index) + BAR_LAYOUT.width / 2, y(middle) + 3.5, text, "bar-value", "middle");
         });
       });
@@ -407,9 +464,53 @@
       ["USA", "China", "Europe"].forEach(region => {
         const layer = layers.find(item => item.region === region);
         const middle = (layer.y0[3] + layer.y1[3]) / 2;
-        addText(svg, barX(3) + BAR_LAYOUT.width / 2, y(middle) + 4, `${region} ${layer.values[3].toFixed(1)}%`, "area-label", "middle");
+        addText(svg, barX(3) + BAR_LAYOUT.width / 2, y(middle) + 4, `${regionLabel(region)} ${layer.values[3].toFixed(1)}%`, "area-label", "middle");
       });
     }
+  }
+
+  function drawChinaOrigin() {
+    const svg = svgFor("chart-origin", 245, "Horizontal composition bar of China's 2026 deployed AI compute by origin, with an indicative 80 percent uncertainty interval for the smuggled share");
+    const dims = { left: 58, right: 875, top: 50, bottom: 128 };
+    const width = dims.right - dims.left;
+    const x = share => dims.left + share / 100 * width;
+    const byName = Object.fromEntries(CHINA_ORIGIN.components.map(component => [component.name, component]));
+    const plotOrder = ["Smuggled Western chips", "Legal Western imports", "Domestic production"];
+    let shareBase = 0;
+
+    addText(svg, dims.left, 20, "Share of China's deployed stock", "axis-unit");
+    addText(svg, dims.right, 20, `Total: ${Math.round(CHINA_ORIGIN.total).toLocaleString()} GB300e`, "axis-unit", "end");
+
+    plotOrder.forEach(name => {
+      const component = byName[name];
+      const share = component.value / CHINA_ORIGIN.total * 100;
+      const left = x(shareBase);
+      const right = x(shareBase + share);
+      const rect = el("rect", { x: left, y: dims.top, width: right - left, height: dims.bottom - dims.top, fill: component.color, stroke: "var(--bg)", "stroke-width": 1 });
+      rect.appendChild(el("title", {}, `${component.name}: ${Math.round(component.value).toLocaleString()} GB300e (${share.toFixed(1)}%)`));
+      svg.appendChild(rect);
+
+      const center = (left + right) / 2;
+      const lines = name === "Domestic production"
+        ? ["🇨🇳 Domestic production", `${Math.round(component.value).toLocaleString()} · ${share.toFixed(1)}%`]
+        : name === "Legal Western imports"
+          ? ["Legal", "Western imports", `${Math.round(component.value).toLocaleString()} · ${share.toFixed(1)}%`]
+          : ["Smuggled Western chips", `${Math.round(component.value).toLocaleString()} · ${share.toFixed(1)}%`];
+      addMultilineText(svg, center, dims.top + (lines.length === 3 ? 25 : 32), lines, "origin-label", 14);
+      shareBase += share;
+    });
+
+    const intervalY = 170;
+    const interval = CHINA_ORIGIN.share80;
+    svg.appendChild(el("line", { x1: x(interval.p10), y1: intervalY, x2: x(interval.p90), y2: intervalY, stroke: "var(--china)", "stroke-width": 3, opacity: .55 }));
+    [interval.p10, interval.p90].forEach(value => svg.appendChild(el("line", { x1: x(value), y1: intervalY - 7, x2: x(value), y2: intervalY + 7, stroke: "var(--china)", "stroke-width": 1.5 })));
+    svg.appendChild(el("line", { x1: x(interval.p50), y1: dims.bottom, x2: x(interval.p50), y2: intervalY + 7, stroke: "var(--china)", "stroke-width": 1.5, "stroke-dasharray": "3 3" }));
+    svg.appendChild(el("circle", { cx: x(interval.p50), cy: intervalY, r: 4, fill: "var(--china)" }));
+    addText(svg, x(interval.p10), intervalY + 25, `${interval.p10.toFixed(0)}%`, "origin-interval", "middle");
+    addText(svg, x(interval.p90), intervalY + 25, `${interval.p90.toFixed(0)}%`, "origin-interval", "middle");
+    addText(svg, x(interval.p50), intervalY + 25, `${interval.p50.toFixed(1)}% median`, "origin-interval", "middle");
+    addText(svg, dims.left, 224, "Indicative 80% interval for the smuggled share", "axis-text");
+    addText(svg, dims.right, 224, "2026 flow alone: 168k–743k GB300e", "axis-text", "end");
   }
 
   function drawStackedShare(containerId, focused = false) {
@@ -438,7 +539,7 @@
       ["USA", "China", "Europe"].forEach(region => {
         const layer = layers.find(item => item.region === region);
         const middle = (layer.y0[labelIndex] + layer.y1[labelIndex]) / 2;
-        addText(svg, x(labelYear), y(middle) + 4, `${region} ${layer.values[labelIndex].toFixed(1)}%`, "area-label", "end");
+        addText(svg, x(labelYear), y(middle) + 4, `${regionLabel(region)} ${layer.values[labelIndex].toFixed(1)}%`, "area-label", "end");
       });
     } else {
       const china = layers.find(layer => layer.region === "China");
@@ -449,7 +550,7 @@
       const box = { x: 300, y: 154, w: 432, h: 100 };
       svg.appendChild(el("path", { d: `M${box.x + box.w},${box.y + 15} L${trajectory[3][0] - 8},${trajectory[3][1] + 3}`, class: "annotation-line" }));
       svg.appendChild(el("rect", { x: box.x, y: box.y, width: box.w, height: box.h, rx: 5, class: "callout-box" }));
-      addText(svg, box.x + 14, box.y + 23, "China: 13.8% → 6.1%", "callout-title");
+      addText(svg, box.x + 14, box.y + 23, "🇨🇳 China: 13.8% → 6.1%", "callout-title");
       addText(svg, box.x + 14, box.y + 44, "export controls bind while the U.S. buildout compounds", "callout-text");
       addText(svg, box.x + 14, box.y + 68, "2026E p10–p90", "callout-text");
       const interval = DATA.intervals2026.China;
@@ -507,12 +608,14 @@
 
       resolveLabels(labels, top + 5, bottom - 5, regions.length > 2 ? 15 : 18).forEach(item => {
         svg.appendChild(el("path", { d: `M${dims.right + 4},${item.y} L${dims.right + 18},${item.labelY} L${dims.right + 25},${item.labelY}`, fill: "none", stroke: COLORS[item.region], "stroke-width": 1 }));
-        addText(svg, dims.right + 30, item.labelY + 4, `${SHORT[item.region] || item.region}  ${item.value.toFixed(1)}%`, "end-label").setAttribute("fill", COLORS[item.region]);
+        const shortLabel = SHORT[item.region] || item.region;
+        const flaggedLabel = FLAGS[item.region] ? `${FLAGS[item.region]} ${shortLabel}` : shortLabel;
+        addText(svg, dims.right + 30, item.labelY + 4, `${flaggedLabel}  ${item.value.toFixed(1)}%`, "end-label").setAttribute("fill", COLORS[item.region]);
       });
     }
 
     addText(svg, dims.left, 14, "Share of world", "axis-unit");
-    panel({ top: 44, bottom: 206, regions: ["USA"], domain: [64, 76], ticks: [65, 70, 75], label: "United States", showYears: false });
+    panel({ top: 44, bottom: 206, regions: ["USA"], domain: [64, 76], ticks: [65, 70, 75], label: "🇺🇸 United States", showYears: false });
     panel({ top: 276, bottom: 600, regions: REGION_ORDER.filter(region => region !== "USA"), domain: [0, 14], ticks: [0, 5, 10], label: "All other regions", showYears: true });
   }
 
@@ -553,6 +656,7 @@
   drawStackedBars("chart-1a", "plain");
   drawStackedBars("chart-1b", "connectors");
   drawStackedBars("chart-1c", "labeled");
+  drawChinaOrigin();
   drawStackedShare("chart-1", false);
   addLegend("legend-1");
   drawStackedShare("chart-2", true);

@@ -15,6 +15,16 @@ const requiredText = [
   "1b. Stacked columns with connectors",
   "1c. Labeled columns",
   "Rest = SE Asia, India, East Asia ex-China, Middle East, Latin America, Australia &amp; NZ, and Other.",
+  "China's 2026 compute by origin",
+  "The smuggled share is the most uncertain component; 80% interval roughly 35–68% of China's stock.",
+  "Chips deployed by EOY 2026; production through Q3, smuggling full-year.",
+  "🇺🇸",
+  "🇨🇳",
+  "🇪🇺",
+  "🇲🇾🇸🇬",
+  "🇮🇳",
+  "🇯🇵🇰🇷🇹🇼",
+  "🇦🇺🇳🇿",
   "1. Epoch-style 100% stacked area",
   "2. China-focus annotated",
   "3. Share lines",
@@ -27,6 +37,7 @@ const requiredText = [
   'id="chart-1a"',
   'id="chart-1b"',
   'id="chart-1c"',
+  'id="chart-origin"',
   'id="chart-1"',
   'id="chart-2"',
   'id="chart-3"',
@@ -52,10 +63,27 @@ const match = html.match(/const DATA = (\{[\s\S]*?\n\s*\});\n\s*const REGION_ORD
 if (!match) throw new Error("Could not locate embedded DATA literal");
 const data = vm.runInNewContext(`(${match[1]})`);
 
+const originMatch = html.match(/const CHINA_ORIGIN = (\{[\s\S]*?\n\s*\});\n\s*const DATA/);
+if (!originMatch) throw new Error("Could not locate embedded China-origin aggregate literal");
+const origin = vm.runInNewContext(`(${originMatch[1]})`);
+const componentTotal = origin.components.reduce((sum, component) => sum + component.value, 0);
+if (Math.abs(componentTotal - origin.total) > 1e-6) throw new Error("China-origin components do not reconcile");
+if (origin.total !== 1199574.007520285) throw new Error("Unexpected China-origin total");
+if (origin.smuggling2026Flow80.p10 !== 167576.416 || origin.smuggling2026Flow80.p90 !== 742886.404) {
+  throw new Error("Unexpected 2026 smuggling-flow interval");
+}
+if (origin.smugglingStock80.p10 !== 297795.416 || origin.smugglingStock80.p90 !== 1315608.404) {
+  throw new Error("Unexpected cumulative smuggling interval");
+}
+if (origin.share80.p10 !== 34.93589687830025 || origin.share80.p90 !== 67.7747522990999) {
+  throw new Error("Unexpected indicative smuggled-share interval");
+}
+
 const barFamilyIndex = html.indexOf("1. Stacked bars (variant 1 family — pick one)");
+const originIndex = html.indexOf("China's 2026 compute by origin");
 const originalVariantIndex = html.indexOf("1. Epoch-style 100% stacked area");
-if (barFamilyIndex < 0 || originalVariantIndex < 0 || barFamilyIndex >= originalVariantIndex) {
-  throw new Error("The stacked-bar family must appear before the original variants");
+if (barFamilyIndex < 0 || originIndex < 0 || originalVariantIndex < 0 || !(barFamilyIndex < originIndex && originIndex < originalVariantIndex)) {
+  throw new Error("The China-origin figure must sit between the stacked-bar family and original variants");
 }
 if (!html.includes("const BAR_LAYOUT = { width: 130, gap: 26 }")) {
   throw new Error("Expected a 20% inter-column gap in the shared bar layout");

@@ -17,14 +17,14 @@ with sync_playwright() as playwright:
     if response is None or not response.ok:
         raise RuntimeError(f"Page load failed: {None if response is None else response.status}")
 
-    page.wait_for_selector("#chart-1c svg")
+    page.wait_for_selector("#chart-origin svg")
     bar_sections = page.locator(".bar-prototype")
     if bar_sections.count() != 3:
         raise RuntimeError(f"Expected three bar prototypes; found {bar_sections.count()}")
     if page.locator(".prototype").count() != 4:
         raise RuntimeError(f"Expected four original prototypes; found {page.locator('.prototype').count()}")
-    for index, suffix in enumerate(("1a", "1b", "1c")):
-        bar_sections.nth(index).screenshot(path=RUN_DIR / f"variant-{suffix}.png")
+    page.locator(".origin-prototype").screenshot(path=RUN_DIR / "china-origin.png")
+    bar_sections.nth(0).screenshot(path=RUN_DIR / "flagged-variant-1a.png")
 
     page.set_viewport_size({"width": 390, "height": 844})
     page.reload(wait_until="networkidle")
@@ -38,4 +38,4 @@ with sync_playwright() as playwright:
 if problems:
     raise RuntimeError("Browser errors:\n" + "\n".join(problems))
 
-print("Captured three desktop bar variants and verified mobile layout with no browser errors")
+print("Captured the China-origin figure and a flagged bar chart; verified mobile layout with no browser errors")

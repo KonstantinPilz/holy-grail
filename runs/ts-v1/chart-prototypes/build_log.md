@@ -46,3 +46,11 @@
 - Headless Chromium rendered all seven charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1a.png`, `variant-1b.png`, and `variant-1c.png` for QA.
 - Published in commit `6ae962d` (`Add stacked bar chart prototypes`) and pushed to `main`.
 - GitHub Pages updated on the fourth polling attempt. A fresh headless-Chromium render of the live URL produced three bar-family SVGs and four original-variant SVGs while preserving the noindex directive.
+
+## Flags and China-origin figure (2026-08-20)
+
+- Added native emoji flags beside region names in legends and direct labels. The mappings are United States 🇺🇸, China 🇨🇳, Europe 🇪🇺, SE Asia 🇲🇾🇸🇬, India 🇮🇳, East Asia ex-China 🇯🇵🇰🇷🇹🇼, and Australia & NZ 🇦🇺🇳🇿. Middle East, Latin America, Other, and Rest remain unflagged rather than implying a single country.
+- Added a horizontal 100% composition figure immediately after the bar family. The embedded aggregate component values are domestic production 431,327.825 GB300e, legal Western imports 152,213.556, and smuggled Western chips 616,032.626, reconciling to 1,199,574.008 GB300e before display rounding.
+- The internal hand-off table gives the cumulative smuggling component an indicative p10/p50/p90 of 297,795 / 616,033 / 1,315,608 GB300e and total China stock of 852,405 / 1,199,574 / 1,941,148. Same-tail indicative division gives 297,795 ÷ 852,405 = 34.94% and 1,315,608 ÷ 1,941,148 = 67.77%, displayed as roughly 35–68%.
+- The chart also reports the separate 2026 smuggling-flow 80% interval of 167,576–742,886 GB300e. A whisker spans the indicative stock-share interval, and a dashed line ties its 51.4% median to the smuggled segment boundary.
+- Browser QA rendered eight SVG charts with no console or page errors and no horizontal overflow at 390 pixels. Native color flags rendered correctly in both SVG labels and HTML legends. Saved `china-origin.png` and `flagged-variant-1a.png` for QA.
