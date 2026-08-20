@@ -131,3 +131,5 @@
 - Tightened the view box from 330 to 288 units and the display cap from 480 to 420 pixels. Those proportional changes keep rendered bar width effectively unchanged while narrowing the chart and steepening the 2023-to-2026E envelopes.
 - Moved the year headers and percentage labels with their bars. Vertical spacing, centered alignment, row order, bar heights, connectors, colors, flags, data, and all other page content remain unchanged.
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed readable headers and labels, unchanged bar width, and more salient trend slopes.
+- Published in commit `aa3c3ce` (`Tighten variant 1f year spacing`) and pushed to `main`.
+- GitHub Pages updated on the third polling attempt. Live browser QA returned HTTP 200 and confirmed year centers at 145/181/217/253, unchanged 14-unit bars, twelve envelopes spanning 108 units, 24 labels, zero browser errors, and the noindex directive.
