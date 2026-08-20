@@ -95,3 +95,5 @@
 - Replaced each filled connector band with two 1.1-unit lines at 24% opacity: one joins adjacent tops and the other joins adjacent bottoms.
 - Reduced the chart view box from 520×360 to 360×290, row spacing from 50 to 42 units, and the chart display cap from 600 to 520 pixels.
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection found no clipped labels, overlaps, or residual filled connector bands.
+- Published in commit `5b15645` (`Revise consolidated connector chart`) and pushed to `main`.
+- GitHub Pages updated on the fourth polling attempt. Live browser QA returned HTTP 200 and confirmed 24 centered bars, 36 envelope connector lines, zero connector polygons, 24 value labels, zero browser errors, and the noindex directive.
