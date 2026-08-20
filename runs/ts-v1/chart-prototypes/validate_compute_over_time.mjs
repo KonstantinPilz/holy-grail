@@ -157,6 +157,9 @@ if (!html.includes("const minVisibleHeight = 2")) {
   throw new Error("Variant 1f must keep the smallest regional bars clearly visible");
 }
 const variant1fFunction = html.slice(html.indexOf("function drawNarrowBarConnectors()"), html.indexOf("function drawCenteredRibbons()"));
+if (!variant1fFunction.includes('svg.setAttribute("viewBox", "0 0 330 334")') || !variant1fFunction.includes("const rowStart = 74")) {
+  throw new Error("Variant 1f must preserve clear space below the year headers");
+}
 if (variant1fFunction.includes('el("polygon"')) {
   throw new Error("Variant 1f must use connector lines rather than filled bands");
 }

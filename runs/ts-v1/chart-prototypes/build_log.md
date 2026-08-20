@@ -107,3 +107,9 @@
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection found no clipped labels, overlaps, center lines, or residual filled bands.
 - Published in commit `dd0f756` (`Refine centered connector chart`) and pushed to `main`.
 - GitHub Pages updated on the fourth polling attempt. Live browser QA returned HTTP 200 and confirmed the USA–China–Europe order, 24 slim centered bars, 36 envelope lines with no additional row strokes, 24 value labels, the two-unit small-bar minimum, zero browser errors, and the noindex directive.
+
+## Consolidated narrow-bar connector header spacing (2026-08-20)
+
+- Revised variant 1f in place by moving the entire six-row content block down 14 view-box units, from a 60-unit to a 74-unit row start.
+- Increased the view-box height by the same 14 units, preserving the lower margin, row spacing, bar geometry, connectors, labels, data, colors, flags, and row order.
+- Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed a clear gap between the year headers and the USA labels with no new clipping or overlap.
