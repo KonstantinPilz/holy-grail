@@ -1,6 +1,6 @@
 # Compute-over-time chart prototypes — build log
 
-- **Status:** Data refresh built and validated locally; publication pending.
+- **Status:** Refreshed, published, and live-verified.
 - **Target URL:** https://konstantinpilz.github.io/holy-grail/compute-over-time.html
 - **Data pull:** Live appendix pulled 2026-08-20. Publication-safe aggregate regional shares, aggregate regional GB300e totals, and 2026 p10/p90 share endpoints only.
 - **Source definitions:** Each year-end counts direct and legal deployment flows through Q3; smuggling counts full calendar years. The model excludes chips shipped in 2021 or earlier and does not retire chips.
@@ -31,5 +31,7 @@
 ## Publication
 
 - Initial page commit: `c5356d3` (`Add regional AI compute chart prototypes`).
-- The 2026-08-20 model refresh is pending commit, push, and live verification.
+- Refresh commit: `949796f` (`Refresh regional compute prototype data`).
+- Pushed to `main`; GitHub Pages serves the repository's `docs/` directory.
+- The live page returned HTTP 200 and rendered four refreshed chart SVGs in headless Chromium with no browser errors on 2026-08-20.
 - Live URL: https://konstantinpilz.github.io/holy-grail/compute-over-time.html
