@@ -84,3 +84,5 @@
 - Labeled every bar to one decimal, including shares below 1%. The live appendix still reports Middle East at 0.7925% in 2023 and 0.9100% in 2025, which display as 0.8% and 0.9%; those true values are now visible in both the final circle grid and variant 1f.
 - Updated automated checks cover section placement, the shared six-row order, narrow bar width, connector opacity, common linear scale, and all-value labels.
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1f.png`. The refreshed `final-candidate-1e.png` records the newly visible Middle East labels.
+- Published in commit `690973a` (`Add consolidated narrow-bar connector variant`) and pushed to `main`.
+- GitHub Pages updated on the third polling attempt. Live browser QA returned HTTP 200, rendered twelve SVGs with zero console or page errors, confirmed the repaired Middle East labels, and retained the noindex directive.
