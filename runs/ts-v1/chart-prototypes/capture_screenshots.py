@@ -17,14 +17,13 @@ with sync_playwright() as playwright:
     if response is None or not response.ok:
         raise RuntimeError(f"Page load failed: {None if response is None else response.status}")
 
-    page.wait_for_selector("#chart-origin svg")
+    page.wait_for_selector("#chart-final-1e svg")
     bar_sections = page.locator(".bar-prototype")
     if bar_sections.count() != 5:
         raise RuntimeError(f"Expected five bar-family prototypes; found {bar_sections.count()}")
     if page.locator(".prototype").count() != 4:
         raise RuntimeError(f"Expected four original prototypes; found {page.locator('.prototype').count()}")
-    bar_sections.nth(3).screenshot(path=RUN_DIR / "variant-1d.png")
-    bar_sections.nth(4).screenshot(path=RUN_DIR / "variant-1e.png")
+    page.locator(".final-candidate").screenshot(path=RUN_DIR / "final-candidate-1e.png")
 
     page.set_viewport_size({"width": 390, "height": 844})
     page.reload(wait_until="networkidle")
@@ -32,10 +31,12 @@ with sync_playwright() as playwright:
         raise RuntimeError("Mobile layout has horizontal overflow")
     if page.locator(".bar-prototype").count() != 5:
         raise RuntimeError("Bar prototypes were lost at the mobile breakpoint")
+    if page.locator(".final-candidate").count() != 1:
+        raise RuntimeError("Final candidate was lost at the mobile breakpoint")
 
     browser.close()
 
 if problems:
     raise RuntimeError("Browser errors:\n" + "\n".join(problems))
 
-print("Captured variants 1d and 1e; verified mobile layout with no browser errors")
+print("Captured the consolidated final candidate; verified mobile layout with no browser errors")

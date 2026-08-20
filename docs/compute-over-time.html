@@ -67,6 +67,8 @@
   .prototype { padding: 30px 0 32px; border-top: 1px solid var(--border); }
   .prototype:first-of-type { border-top: 0; padding-top: 0; }
   .bar-family { padding: 0 0 34px; }
+  .final-candidate { padding: 0 0 32px; }
+  .final-candidate .chart { max-width: 600px; }
   .bar-family > h2 { margin-bottom: 16px; font-size: 21px; }
   .bar-prototype { padding: 24px 0 28px; border-top: 1px solid var(--border); }
   .bar-prototype:first-of-type { padding-top: 0; border-top: 0; }
@@ -125,6 +127,16 @@
     <p class="deck">Four views of the same regional estimate, from composition to absolute growth. Data pulled 20 August 2026.</p>
     <p class="scope-note">Scope: EOY 2023 includes shipments from 2022–2023. Chips shipped in 2021 and earlier are outside the model for every region; the model does not retire chips.</p>
   </header>
+
+  <section class="final-candidate" aria-labelledby="title-final-1e">
+    <div class="chart-head">
+      <h2 id="title-final-1e">Final candidate: 1e (consolidated)</h2>
+      <p class="chart-subtitle">Circle area is proportional to consolidated regional share of deployed FP8 GB300-equivalent compute. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+    </div>
+    <div class="chart" id="chart-final-1e"></div>
+    <p class="bar-footnote">Other combines East Asia ex-China (1.8%), India (1.5%), Australia &amp; NZ (0.7%), the prior Other category (0.7%), and Latin America (0.6%). Unrounded 2026E shares sum to 5.2%; the displayed component shares sum to approximately 5.3% because of rounding.</p>
+    <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+  </section>
 
   <section class="bar-family" aria-labelledby="title-bars">
     <h2 id="title-bars">1. Stacked bars (variant 1 family — pick one)</h2>
@@ -307,6 +319,7 @@
     "East Asia ex-China": "🇯🇵🇰🇷🇹🇼",
     "Australia & NZ": "🇦🇺🇳🇿"
   };
+  const FINAL_OTHER_REGIONS = ["East Asia ex-China", "India", "Australia & NZ", "Other", "Latin America"];
   const SHORT = { "East Asia ex-China": "East Asia ex-China", "Australia & NZ": "Australia & NZ" };
   const BAR_LAYOUT = { width: 130, gap: 26 };
   const NS = "http://www.w3.org/2000/svg";
@@ -494,6 +507,42 @@
 
   function regionsBy2026Share() {
     return REGION_ORDER.slice().sort((a, b) => DATA.shares[b][3] - DATA.shares[a][3]);
+  }
+
+  function drawFinalCircleGrid() {
+    const svg = svgFor("chart-final-1e", 340, "Compact grid of six consolidated regional AI compute shares by year, with circle area proportional to share, 2023 to 2026");
+    svg.setAttribute("viewBox", "0 0 520 340");
+    const finalCenters = [150, 240, 330, 420];
+    const finalRowGap = 45;
+    const rowStart = 64;
+    const radiusForShare = value => Math.sqrt(value / 100) * 32.5;
+    const consolidated = {
+      "USA": DATA.shares.USA,
+      "Europe": DATA.shares.Europe,
+      "China": DATA.shares.China,
+      "SE Asia": DATA.shares["SE Asia"],
+      "Middle East": DATA.shares["Middle East"],
+      "Other": DATA.years.map((_, yearIndex) => FINAL_OTHER_REGIONS.reduce((sum, region) => sum + DATA.shares[region][yearIndex], 0))
+    };
+    const rows = ["USA", "Europe", "China", "SE Asia", "Middle East", "Other"];
+
+    addText(svg, 18, 18, "Region", "axis-unit");
+    DATA.yearLabels.forEach((label, index) => {
+      addText(svg, finalCenters[index], 18, label.replace("EOY ", ""), "axis-unit", "middle");
+      svg.appendChild(el("line", { x1: finalCenters[index], y1: 34, x2: finalCenters[index], y2: 314, class: "grid-line" }));
+    });
+
+    rows.forEach((region, rowIndex) => {
+      const centerY = rowStart + rowIndex * finalRowGap;
+      addText(svg, 18, centerY + 4, regionLabel(region), "row-label");
+      consolidated[region].forEach((value, yearIndex) => {
+        const radius = radiusForShare(value);
+        const circle = el("circle", { cx: finalCenters[yearIndex], cy: centerY, r: radius, fill: COLORS[region], opacity: .92 });
+        circle.appendChild(el("title", {}, `${region}: ${DATA.yearLabels[yearIndex]} ${value.toFixed(1)}%`));
+        svg.appendChild(circle);
+        if (value >= 1) addText(svg, finalCenters[yearIndex] + radius + 5, centerY + 3.5, `${value.toFixed(1)}%`, "cell-value");
+      });
+    });
   }
 
   function drawCenteredRibbons() {
@@ -757,6 +806,7 @@
     addText(svg, dims.right, 15, "World total at stack top", "axis-unit", "end");
   }
 
+  drawFinalCircleGrid();
   drawStackedBars("chart-1a", "plain");
   drawStackedBars("chart-1b", "connectors");
   drawStackedBars("chart-1c", "labeled");

@@ -66,3 +66,11 @@
 - Browser QA rendered all ten SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1d.png` and `variant-1e.png`. Visual inspection found no clipped labels, overlaps, or misleading rescaling.
 - Published in commit `2cd9bca` (`Add centered ribbon and circle grid variants`) and pushed to `main`.
 - GitHub Pages updated on the fifth polling attempt. Live browser QA returned HTTP 200, rendered ten SVGs including five bar-family variants with zero console or page errors, and preserved the noindex directive.
+
+## Final consolidated circle grid (2026-08-20)
+
+- Added a new top-of-page final candidate while preserving the original 1e unchanged in the bar-family comparison set.
+- Kept six rows: USA, Europe, China, SE Asia, Middle East, and consolidated Other. The consolidated series sums the unrounded values for East Asia ex-China, India, Australia & NZ, the prior Other category, and Latin America in every year.
+- Consolidated Other is 6.8%, 6.2%, 5.8%, and 5.2% across 2023–2026E. The individually displayed 2026E component shares sum to approximately 5.3% because each is rounded to one decimal; the chart geometry and 5.2% label use the unrounded 5.1821% total.
+- Tightened the chart to a 520×340 view box with a 600-pixel display cap, 45-unit row spacing, and 90-unit year-column spacing. The largest USA circles and adjacent value labels approach one another without overlapping. Labels start at the left edge of the compact plot.
+- Browser QA rendered all eleven SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `final-candidate-1e.png`. Visual inspection found no clipped labels or overlapping circles.
