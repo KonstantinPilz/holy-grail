@@ -113,3 +113,5 @@
 - Revised variant 1f in place by moving the entire six-row content block down 14 view-box units, from a 60-unit to a 74-unit row start.
 - Increased the view-box height by the same 14 units, preserving the lower margin, row spacing, bar geometry, connectors, labels, data, colors, flags, and row order.
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed a clear gap between the year headers and the USA labels with no new clipping or overlap.
+- Published in commit `071bf30` (`Add space below connector chart headers`) and pushed to `main`.
+- GitHub Pages updated on the fourth polling attempt. Live browser QA returned HTTP 200, measured 24.3 view-box units from the year-header baseline to the first USA label, and confirmed 24 bars, 36 connector lines, 24 value labels, zero browser errors, and the noindex directive.
