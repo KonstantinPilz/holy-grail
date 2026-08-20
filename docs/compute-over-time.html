@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="robots" content="noindex, nofollow">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI compute by region over time — chart prototypes</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #ffffff;
+    --text: #333333;
+    --text-2: #666666;
+    --text-3: #8b8b8b;
+    --grid: #e8e8e8;
+    --border: #dddddd;
+    --card: #ffffff;
+    --usa: #1d81a2;
+    --china: #c6523d;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #1f1f1f;
+      --text: #e0e0e0;
+      --text-2: #aaaaaa;
+      --text-3: #858585;
+      --grid: #383838;
+      --border: #444444;
+      --card: #1f1f1f;
+      --usa: #2e94bd;
+      --china: #d66a50;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Roboto, -apple-system, "Segoe UI", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 34px 18px 54px; }
+  .page-header { max-width: 760px; margin-bottom: 34px; }
+  .eyebrow {
+    margin: 0 0 8px;
+    color: var(--text-3);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+  }
+  h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 35px); line-height: 1.13; letter-spacing: -.02em; }
+  .deck { margin: 0 0 14px; color: var(--text-2); font-size: 15px; line-height: 1.5; }
+  .scope-note {
+    margin: 0;
+    padding-left: 12px;
+    border-left: 3px solid var(--border);
+    color: var(--text-2);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .prototype { padding: 30px 0 32px; border-top: 1px solid var(--border); }
+  .prototype:first-of-type { border-top: 0; padding-top: 0; }
+  .chart-head { margin-bottom: 12px; }
+  h2 { margin: 0 0 5px; color: var(--text); font-size: 19px; line-height: 1.3; }
+  .chart-subtitle { margin: 0; color: var(--text-2); font-size: 13.5px; line-height: 1.48; }
+  .chart { width: 100%; overflow: hidden; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart-source { margin: 8px 0 0; color: var(--text-3); font-size: 11.5px; line-height: 1.45; }
+  .legend { display: flex; flex-wrap: wrap; gap: 7px 15px; margin-top: 9px; }
+  .legend-item { display: inline-flex; align-items: center; gap: 5px; color: var(--text-2); font-size: 11.5px; }
+  .swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; shape-rendering: crispEdges; }
+  .axis-line { stroke: var(--border); stroke-width: 1; shape-rendering: crispEdges; }
+  .axis-text { fill: var(--text-3); font-size: 11px; }
+  .axis-unit { fill: var(--text-2); font-size: 11px; font-weight: 700; }
+  .panel-label { fill: var(--text-2); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .area-label { fill: #ffffff; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 2px; }
+  .end-label { font-size: 11px; font-weight: 500; }
+  .callout-box { fill: var(--card); stroke: var(--border); stroke-width: 1; }
+  .callout-title { fill: var(--text); font-size: 12px; font-weight: 700; }
+  .callout-text { fill: var(--text-2); font-size: 11.5px; }
+  .annotation-line { fill: none; stroke: var(--china); stroke-width: 1.5; }
+  .total-line { fill: none; stroke: var(--text); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .total-label { fill: var(--text-2); font-size: 10.5px; font-weight: 700; }
+  .footer-note { margin: 8px 0 0; color: var(--text-3); font-size: 11px; }
+  @media (max-width: 620px) {
+    .wrap { padding: 24px 12px 40px; }
+    .prototype { padding: 26px 0 28px; }
+    h2 { font-size: 17px; }
+    .chart-subtitle { font-size: 12.5px; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="page-header">
+    <p class="eyebrow">Chart prototypes</p>
+    <h1>Share of world AI compute by region over time</h1>
+    <p class="deck">Four views of the same regional estimate, from composition to absolute growth. Data pulled 20 August 2026.</p>
+    <p class="scope-note">Scope: EOY 2023 includes shipments from 2022–2023. Chips shipped in 2021 and earlier are outside the model for every region; the model does not retire chips.</p>
+  </header>
+
+  <section class="prototype" aria-labelledby="title-1">
+    <div class="chart-head">
+      <h2 id="title-1">1. Epoch-style 100% stacked area</h2>
+      <p class="chart-subtitle">Share of deployed FP8 GB300-equivalent compute at each year-end. EOY 2026E includes production and inflows through Q3 2026.</p>
+    </div>
+    <div class="chart" id="chart-1"></div>
+    <div class="legend" id="legend-1" aria-label="Regions"></div>
+    <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+  </section>
+
+  <section class="prototype" aria-labelledby="title-2">
+    <div class="chart-head">
+      <h2 id="title-2">2. China-focus annotated</h2>
+      <p class="chart-subtitle">Share of deployed FP8 GB300-equivalent compute at each year-end. EOY 2026E includes production and inflows through Q3 2026.</p>
+    </div>
+    <div class="chart" id="chart-2"></div>
+    <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+  </section>
+
+  <section class="prototype" aria-labelledby="title-3">
+    <div class="chart-head">
+      <h2 id="title-3">3. Share lines</h2>
+      <p class="chart-subtitle">Share of deployed FP8 GB300-equivalent compute at each year-end. EOY 2026E includes production and inflows through Q3 2026.</p>
+    </div>
+    <div class="chart" id="chart-3"></div>
+    <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+  </section>
+
+  <section class="prototype" aria-labelledby="title-4">
+    <div class="chart-head">
+      <h2 id="title-4">4. Absolute stacked area</h2>
+      <p class="chart-subtitle">Cumulative deployed FP8 GB300-equivalents at each year-end. EOY 2026E includes production and inflows through Q3 2026.</p>
+    </div>
+    <div class="chart" id="chart-4"></div>
+    <div class="legend" id="legend-4" aria-label="Regions"></div>
+    <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+  </section>
+
+  <p class="footer-note">p50 regional shares use a renormalized-median convention, so each year sums to 100%.</p>
+</main>
+
+<script>
+  const DATA = {
+    pulled: "2026-08-20",
+    years: [2023, 2024, 2025, 2026],
+    yearLabels: ["EOY 2023", "EOY 2024", "EOY 2025", "EOY 2026E"],
+    shares: {
+      "USA": [67.65193878034108, 72.8515677875236, 73.08542245562861, 74.2249517163272],
+      "China": [12.679118927540745, 8.605722942967235, 6.872666069664385, 5.613309372100744],
+      "Europe": [10.720850005807181, 8.105201846437163, 8.203563259459552, 7.921667105325157],
+      "SE Asia": [1.2928281588194365, 3.45944697694649, 5.038884957701413, 4.499221985038448],
+      "India": [1.1644959564601225, 1.0820749818213482, 1.4173265580412802, 1.46460619217209],
+      "East Asia ex-China": [3.551354645481273, 3.2277185641804478, 2.344847893039664, 1.882563324467262],
+      "Middle East": [0.8024403310959717, 0.7617735729380518, 0.9187851552876424, 2.401622282103784],
+      "Latin America": [0.4658609997297108, 0.4125479076386282, 0.5012934159668968, 0.5877498100164282],
+      "Australia & NZ": [0.5673683780513423, 0.6278397074276428, 0.6064830817365583, 0.6814778699813114],
+      "Other": [1.1037438166731417, 0.8661057121193916, 1.0107271534740003, 0.722830342467573]
+    },
+    intervals2026: {
+      "China": { p10: 4.302684020047999, p50: 5.613309372100744, p90: 8.230865845634422 },
+      "USA": { p10: 67.51223057818766, p50: 74.2249517163272, p90: 78.1900633515454 },
+      "Europe": { p10: 5.581650016095521, p50: 7.921667105325157, p90: 10.890584138788906 },
+      "SE Asia": { p10: 3.133714664169867, p50: 4.499221985038448, p90: 6.405226513199197 },
+      "India": { p10: 0.7624621411248374, p50: 1.46460619217209, p90: 2.4032382954680465 },
+      "East Asia ex-China": { p10: 1.3087058662531376, p50: 1.882563324467262, p90: 2.634160002047948 },
+      "Middle East": { p10: 1.137554726321949, p50: 2.401622282103784, p90: 4.08855951480402 },
+      "Latin America": { p10: 0.3380940817537493, p50: 0.5877498100164282, p90: 0.9795617150270553 },
+      "Australia & NZ": { p10: 0.4143400900158766, p50: 0.6814778699813114, p90: 1.0501901911631915 },
+      "Other": { p10: 0.4505964171398728, p50: 0.722830342467573, p90: 1.114022895701583 }
+    },
+    absolute: {
+      "USA": [605175.792643165, 2285087.1309730923, 7062200.025973035, 15074872.664503193],
+      "China": [113420.19142873617, 269930.04195939994, 664101.552196061, 1140046.8717619565],
+      "Europe": [95902.63068644209, 254230.52647612052, 792705.3400998006, 1608867.6400862117],
+      "SE Asia": [11564.905897306073, 108510.19418497686, 486904.39602724713, 913778.9509517248],
+      "India": [10416.918955843737, 33940.733065889675, 136955.40531476442, 297457.2746778965],
+      "East Asia ex-China": [31768.400156488166, 101241.72172825663, 226581.22912515496, 382343.15742862504],
+      "Middle East": [7178.175114782721, 23894.04979331476, 88781.65206577812, 487762.52801501396],
+      "Latin America": [4167.3277197325515, 12940.118425513849, 48439.67861594925, 119370.28370790595],
+      "Australia & NZ": [5075.355031919114, 19693.034471696243, 58604.09219352153, 138406.18115734452],
+      "Other": [9873.464843320386, 27166.567267276416, 97665.95156303996, 146804.74852152698]
+    },
+    worldTotals: [894543, 3136634, 9662939, 20309710.3008114]
+  };
+  const REGION_ORDER = ["USA", "China", "Europe", "SE Asia", "India", "East Asia ex-China", "Middle East", "Latin America", "Australia & NZ", "Other"];
+  const COLORS = {
+    "USA": "#1d81a2",
+    "China": "#c6523d",
+    "Europe": "#65758b",
+    "SE Asia": "#d5a147",
+    "India": "#8e6aaa",
+    "East Asia ex-China": "#4f9187",
+    "Middle East": "#d47d3e",
+    "Latin America": "#6b8fbc",
+    "Australia & NZ": "#b56c92",
+    "Other": "#b8b8b8"
+  };
+  const SHORT = { "East Asia ex-China": "East Asia ex-China", "Australia & NZ": "Australia & NZ" };
+  const NS = "http://www.w3.org/2000/svg";
+
+  function el(name, attrs = {}, text = null) {
+    const node = document.createElementNS(NS, name);
+    Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+    if (text !== null) node.textContent = text;
+    return node;
+  }
+
+  function svgFor(containerId, height, label) {
+    const container = document.getElementById(containerId);
+    container.replaceChildren();
+    const svg = el("svg", { viewBox: `0 0 920 ${height}`, role: "img", "aria-label": label });
+    svg.appendChild(el("title", {}, label));
+    container.appendChild(svg);
+    return svg;
+  }
+
+  function addText(svg, x, y, text, className, anchor = "start") {
+    const node = el("text", { x, y, class: className, "text-anchor": anchor }, text);
+    svg.appendChild(node);
+    return node;
+  }
+
+  function linePath(points) {
+    return points.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(" ");
+  }
+
+  function stack(series) {
+    const layers = [];
+    const base = DATA.years.map(() => 0);
+    REGION_ORDER.forEach(region => {
+      const y0 = base.slice();
+      const values = series[region];
+      values.forEach((value, i) => { base[i] += value; });
+      layers.push({ region, y0, y1: base.slice(), values });
+    });
+    return layers;
+  }
+
+  function drawYearAxis(svg, x, y, showLabels = true) {
+    svg.appendChild(el("line", { x1: x(2023), y1: y, x2: x(2026), y2: y, class: "axis-line" }));
+    if (!showLabels) return;
+    DATA.years.forEach((year, i) => addText(svg, x(year), y + 22, DATA.yearLabels[i].replace("EOY ", ""), "axis-text", "middle"));
+  }
+
+  function drawShareGrid(svg, dims, x, y) {
+    [0, 25, 50, 75, 100].forEach(value => {
+      svg.appendChild(el("line", { x1: dims.left, y1: y(value), x2: dims.right, y2: y(value), class: "grid-line" }));
+      addText(svg, dims.left - 10, y(value) + 4, `${value}%`, "axis-text", "end");
+    });
+    addText(svg, dims.left, 14, "Share of world", "axis-unit");
+    drawYearAxis(svg, x, dims.bottom);
+  }
+
+  function areaPath(layer, x, y) {
+    const top = DATA.years.map((year, i) => [x(year), y(layer.y1[i])]);
+    const bottom = DATA.years.map((year, i) => [x(year), y(layer.y0[i])]).reverse();
+    return `${linePath(top)} ${bottom.map(p => `L${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(" ")} Z`;
+  }
+
+  function addLegend(targetId) {
+    const target = document.getElementById(targetId);
+    target.replaceChildren();
+    REGION_ORDER.forEach(region => {
+      const item = document.createElement("span");
+      item.className = "legend-item";
+      const swatch = document.createElement("span");
+      swatch.className = "swatch";
+      swatch.style.background = COLORS[region];
+      item.append(swatch, document.createTextNode(region));
+      target.appendChild(item);
+    });
+  }
+
+  function drawStackedShare(containerId, focused = false) {
+    const svg = svgFor(containerId, 430, focused ? "China-focused stacked area chart of regional AI compute shares, 2023 to 2026" : "100 percent stacked area chart of regional AI compute shares, 2023 to 2026");
+    const dims = { left: 58, right: 875, top: 26, bottom: 366 };
+    const x = year => dims.left + (year - 2023) / 3 * (dims.right - dims.left);
+    const y = value => dims.bottom - value / 100 * (dims.bottom - dims.top);
+    drawShareGrid(svg, dims, x, y);
+    const layers = stack(DATA.shares);
+
+    layers.forEach(layer => {
+      const path = el("path", {
+        d: areaPath(layer, x, y),
+        fill: COLORS[layer.region],
+        opacity: focused && layer.region !== "China" ? .30 : .92,
+        stroke: "var(--bg)",
+        "stroke-width": .7
+      });
+      path.appendChild(el("title", {}, `${layer.region}: ${layer.values.map((v, i) => `${DATA.yearLabels[i]} ${v.toFixed(1)}%`).join("; ")}`));
+      svg.appendChild(path);
+    });
+
+    if (!focused) {
+      const labelYear = 2025.75;
+      const labelIndex = 3;
+      ["USA", "China", "Europe"].forEach(region => {
+        const layer = layers.find(item => item.region === region);
+        const middle = (layer.y0[labelIndex] + layer.y1[labelIndex]) / 2;
+        addText(svg, x(labelYear), y(middle) + 4, `${region} ${layer.values[labelIndex].toFixed(1)}%`, "area-label", "end");
+      });
+    } else {
+      const china = layers.find(layer => layer.region === "China");
+      const trajectory = DATA.years.map((year, i) => [x(year), y((china.y0[i] + china.y1[i]) / 2)]);
+      svg.appendChild(el("path", { d: linePath(trajectory), class: "annotation-line" }));
+      trajectory.forEach(point => svg.appendChild(el("circle", { cx: point[0], cy: point[1], r: 3.2, fill: COLORS.China, stroke: "var(--card)", "stroke-width": 1.2 })));
+
+      const box = { x: 300, y: 154, w: 432, h: 100 };
+      svg.appendChild(el("path", { d: `M${box.x + box.w},${box.y + 15} L${trajectory[3][0] - 8},${trajectory[3][1] + 3}`, class: "annotation-line" }));
+      svg.appendChild(el("rect", { x: box.x, y: box.y, width: box.w, height: box.h, rx: 5, class: "callout-box" }));
+      addText(svg, box.x + 14, box.y + 23, "China: 12.7% → 5.6%", "callout-title");
+      addText(svg, box.x + 14, box.y + 44, "export controls bind while the U.S. buildout compounds", "callout-text");
+      addText(svg, box.x + 14, box.y + 68, "2026E p10–p90", "callout-text");
+      const interval = DATA.intervals2026.China;
+      const gx1 = box.x + 123;
+      const gx2 = box.x + 270;
+      const g = value => gx1 + (value - interval.p10) / (interval.p90 - interval.p10) * (gx2 - gx1);
+      svg.appendChild(el("line", { x1: gx1, y1: box.y + 65, x2: gx2, y2: box.y + 65, stroke: COLORS.China, "stroke-width": 2 }));
+      [gx1, gx2].forEach(gx => svg.appendChild(el("line", { x1: gx, y1: box.y + 60, x2: gx, y2: box.y + 70, stroke: COLORS.China, "stroke-width": 1.5 })));
+      svg.appendChild(el("circle", { cx: g(interval.p50), cy: box.y + 65, r: 3.5, fill: COLORS.China }));
+      addText(svg, gx2 + 10, box.y + 69, `${interval.p10.toFixed(1)}–${interval.p90.toFixed(1)}%`, "callout-text");
+      addText(svg, box.x + 14, box.y + 89, "Middle 80% of the regional estimate", "axis-text");
+    }
+  }
+
+  function resolveLabels(items, minY, maxY, gap) {
+    const sorted = items.slice().sort((a, b) => a.y - b.y);
+    sorted.forEach((item, i) => { item.labelY = Math.max(item.y, i ? sorted[i - 1].labelY + gap : minY); });
+    const overflow = sorted.length ? sorted[sorted.length - 1].labelY - maxY : 0;
+    if (overflow > 0) sorted.forEach(item => { item.labelY -= overflow; });
+    for (let i = sorted.length - 2; i >= 0; i -= 1) {
+      sorted[i].labelY = Math.min(sorted[i].labelY, sorted[i + 1].labelY - gap);
+    }
+    if (sorted.length && sorted[0].labelY < minY) {
+      const shift = minY - sorted[0].labelY;
+      sorted.forEach(item => { item.labelY += shift; });
+    }
+    return sorted;
+  }
+
+  function drawShareLines() {
+    const svg = svgFor("chart-3", 650, "Two-panel line chart of regional shares of world AI compute, 2023 to 2026");
+    const dims = { left: 58, right: 690 };
+    const x = year => dims.left + (year - 2023) / 3 * (dims.right - dims.left);
+
+    function panel({ top, bottom, regions, domain, ticks, label, showYears }) {
+      const y = value => bottom - (value - domain[0]) / (domain[1] - domain[0]) * (bottom - top);
+      addText(svg, dims.left, top - 13, label, "panel-label");
+      ticks.forEach(value => {
+        svg.appendChild(el("line", { x1: dims.left, y1: y(value), x2: dims.right, y2: y(value), class: "grid-line" }));
+        addText(svg, dims.left - 10, y(value) + 4, `${value}%`, "axis-text", "end");
+      });
+      DATA.years.forEach(year => svg.appendChild(el("line", { x1: x(year), y1: top, x2: x(year), y2: bottom, class: "grid-line" })));
+      drawYearAxis(svg, x, bottom, showYears);
+
+      const labels = [];
+      regions.forEach(region => {
+        const values = DATA.shares[region];
+        const points = DATA.years.map((year, i) => [x(year), y(values[i])]);
+        const path = el("path", { d: linePath(points), fill: "none", stroke: COLORS[region], "stroke-width": region === "China" || region === "USA" ? 2.8 : 2, "stroke-linejoin": "round" });
+        path.appendChild(el("title", {}, `${region}: ${values.map((v, i) => `${DATA.yearLabels[i]} ${v.toFixed(1)}%`).join("; ")}`));
+        svg.appendChild(path);
+        points.forEach(point => svg.appendChild(el("circle", { cx: point[0], cy: point[1], r: 2.3, fill: COLORS[region] })));
+        labels.push({ region, y: points[3][1], value: values[3] });
+      });
+
+      resolveLabels(labels, top + 5, bottom - 5, regions.length > 2 ? 15 : 18).forEach(item => {
+        svg.appendChild(el("path", { d: `M${dims.right + 4},${item.y} L${dims.right + 18},${item.labelY} L${dims.right + 25},${item.labelY}`, fill: "none", stroke: COLORS[item.region], "stroke-width": 1 }));
+        addText(svg, dims.right + 30, item.labelY + 4, `${SHORT[item.region] || item.region}  ${item.value.toFixed(1)}%`, "end-label").setAttribute("fill", COLORS[item.region]);
+      });
+    }
+
+    addText(svg, dims.left, 14, "Share of world", "axis-unit");
+    panel({ top: 44, bottom: 206, regions: ["USA"], domain: [64, 76], ticks: [65, 70, 75], label: "United States", showYears: false });
+    panel({ top: 276, bottom: 600, regions: REGION_ORDER.filter(region => region !== "USA"), domain: [0, 14], ticks: [0, 5, 10], label: "All other regions", showYears: true });
+  }
+
+  function compactMillions(value) {
+    return value < 1000000 ? `${(value / 1000000).toFixed(1)}m` : `${(value / 1000000).toFixed(1)}m`;
+  }
+
+  function drawAbsolute() {
+    const svg = svgFor("chart-4", 460, "Stacked area chart of cumulative deployed AI compute by region in GB300-equivalents, 2023 to 2026");
+    const dims = { left: 68, right: 850, top: 35, bottom: 390 };
+    const x = year => dims.left + (year - 2023) / 3 * (dims.right - dims.left);
+    const max = 22000000;
+    const y = value => dims.bottom - value / max * (dims.bottom - dims.top);
+    [0, 5000000, 10000000, 15000000, 20000000].forEach(value => {
+      svg.appendChild(el("line", { x1: dims.left, y1: y(value), x2: dims.right, y2: y(value), class: "grid-line" }));
+      addText(svg, dims.left - 10, y(value) + 4, value === 0 ? "0" : `${value / 1000000}m`, "axis-text", "end");
+    });
+    addText(svg, dims.left, 15, "Cumulative GB300e", "axis-unit");
+    drawYearAxis(svg, x, dims.bottom);
+
+    stack(DATA.absolute).forEach(layer => {
+      const path = el("path", { d: areaPath(layer, x, y), fill: COLORS[layer.region], opacity: .92, stroke: "var(--bg)", "stroke-width": .7 });
+      path.appendChild(el("title", {}, `${layer.region}: ${layer.values.map((v, i) => `${DATA.yearLabels[i]} ${Math.round(v).toLocaleString()} GB300e`).join("; ")}`));
+      svg.appendChild(path);
+    });
+
+    const totalPoints = DATA.years.map((year, i) => [x(year), y(DATA.worldTotals[i])]);
+    svg.appendChild(el("path", { d: linePath(totalPoints), class: "total-line" }));
+    totalPoints.forEach((point, i) => {
+      svg.appendChild(el("circle", { cx: point[0], cy: point[1], r: 3, fill: "var(--text)", stroke: "var(--card)", "stroke-width": 1 }));
+      const anchor = i === 0 ? "start" : i === totalPoints.length - 1 ? "end" : "middle";
+      const offset = i === 0 ? 7 : i === totalPoints.length - 1 ? -7 : 0;
+      addText(svg, point[0] + offset, point[1] - 10, compactMillions(DATA.worldTotals[i]), "total-label", anchor);
+    });
+    addText(svg, dims.right, 15, "World total at stack top", "axis-unit", "end");
+  }
+
+  drawStackedShare("chart-1", false);
+  addLegend("legend-1");
+  drawStackedShare("chart-2", true);
+  drawShareLines();
+  drawAbsolute();
+  addLegend("legend-4");
+</script>
+</body>
+</html>

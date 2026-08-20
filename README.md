@@ -47,6 +47,10 @@ GB300-equivalents, with 90% CIs and a three-mode toggle:
 7. `scripts/sync_regional_site.sh` — unattended publisher used by the hourly VM schedule.
    It refuses to run on a dirty checkout, fast-forwards first, and only commits when the
    generated regional data changed.
+8. `docs/compute-over-time.html` — standalone review page with four static prototypes for
+   regional compute shares and cumulative GB300e, using aggregate data embedded in the page.
+   QA outputs and a deterministic data/content validator live in
+   `runs/ts-v1/chart-prototypes/`.
 
 ## Updating
 
