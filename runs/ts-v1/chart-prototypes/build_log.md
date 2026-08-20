@@ -64,3 +64,5 @@
 - Variant 1d gives every region a separate 53-pixel row. Each annual block is centered on that row and uses one linear height scale (44 pixels per 100 share points); faint 18%-opacity connectors bridge only adjacent annual blocks. A right-hand value column reports the 2026E share.
 - Variant 1e uses a single radius formula, `sqrt(share / 100) × 32.5`, so circle area is proportional to share across every region and year. It labels cells at or above 1% and states that the USA dominates because no regional rescaling is applied.
 - Browser QA rendered all ten SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `variant-1d.png` and `variant-1e.png`. Visual inspection found no clipped labels, overlaps, or misleading rescaling.
+- Published in commit `2cd9bca` (`Add centered ribbon and circle grid variants`) and pushed to `main`.
+- GitHub Pages updated on the fifth polling attempt. Live browser QA returned HTTP 200, rendered ten SVGs including five bar-family variants with zero console or page errors, and preserved the noindex directive.
