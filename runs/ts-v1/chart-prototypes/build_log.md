@@ -115,3 +115,10 @@
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed a clear gap between the year headers and the USA labels with no new clipping or overlap.
 - Published in commit `071bf30` (`Add space below connector chart headers`) and pushed to `main`.
 - GitHub Pages updated on the fourth polling attempt. Live browser QA returned HTTP 200, measured 24.3 view-box units from the year-header baseline to the first USA label, and confirmed 24 bars, 36 connector lines, 24 value labels, zero browser errors, and the noindex directive.
+
+## Consolidated first-to-last connector revision (2026-08-20)
+
+- Revised variant 1f in place by replacing the six adjacent-year connector segments per row with exactly two straight lines: 2023 top to 2026E top and 2023 bottom to 2026E bottom.
+- Drew both lines before the annual bars in SVG order, so the 2024 and 2025 bars sit on top as the lines pass behind them. Connector opacity and stroke width remain unchanged.
+- Updated the chart note to describe the first-to-last connection. Spacing, centered alignment, row order, bar geometry, labels, flags, data, and all other page content remain unchanged.
+- Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed twelve total connector lines, correct middle-bar occlusion, and no clipping or overlap.

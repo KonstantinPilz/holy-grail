@@ -19,7 +19,7 @@ const requiredText = [
   "Final candidate: 1e (consolidated)",
   "1f. Narrow bars with connectors (consolidated)",
   "Bar height uses one common scale for consolidated regional share",
-  "Every bar is labeled; faint lines connect adjacent bar tops and bottoms.",
+  "Every bar is labeled; faint lines connect the 2023 and 2026E bar tops and bottoms.",
   "Shares below 2.5% use a two-unit minimum display height for visibility.",
   "Circle area is proportional to consolidated regional share",
   "Other combines East Asia ex-China (1.8%), India (1.5%), Australia &amp; NZ (0.7%), the prior Other category (0.7%), and Latin America (0.6%).",
@@ -165,6 +165,19 @@ if (variant1fFunction.includes('el("polygon"')) {
 }
 if (variant1fFunction.includes('class: "grid-line"')) {
   throw new Error("Variant 1f must not draw a center or row-axis line");
+}
+if (variant1fFunction.includes("for (let index = 0; index < centers.length - 1")) {
+  throw new Error("Variant 1f must not connect adjacent years segment by segment");
+}
+const variant1fConnectorCalls = variant1fFunction.match(/svg\.appendChild\(el\("line"/g) || [];
+if (variant1fConnectorCalls.length !== 2) {
+  throw new Error("Variant 1f must construct exactly two 2023-to-2026E connector lines per row");
+}
+if (!variant1fFunction.includes("x1: centers[firstYearIndex]") || !variant1fFunction.includes("x2: centers[lastYearIndex]")) {
+  throw new Error("Variant 1f connectors must span the first and last annual bars");
+}
+if (variant1fFunction.indexOf('svg.appendChild(el("line"') > variant1fFunction.indexOf("values.forEach")) {
+  throw new Error("Variant 1f connectors must be drawn beneath the annual bars");
 }
 if (!variant1fFunction.includes("const top = centerY - height / 2") || !variant1fFunction.includes("const bottom = centerY + height / 2")) {
   throw new Error("Variant 1f bars must be vertically centered on each row axis");
