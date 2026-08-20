@@ -19,18 +19,18 @@ with sync_playwright() as playwright:
 
     page.wait_for_selector("#chart-origin svg")
     bar_sections = page.locator(".bar-prototype")
-    if bar_sections.count() != 3:
-        raise RuntimeError(f"Expected three bar prototypes; found {bar_sections.count()}")
+    if bar_sections.count() != 5:
+        raise RuntimeError(f"Expected five bar-family prototypes; found {bar_sections.count()}")
     if page.locator(".prototype").count() != 4:
         raise RuntimeError(f"Expected four original prototypes; found {page.locator('.prototype').count()}")
-    page.locator(".origin-prototype").screenshot(path=RUN_DIR / "china-origin.png")
-    bar_sections.nth(0).screenshot(path=RUN_DIR / "flagged-variant-1a.png")
+    bar_sections.nth(3).screenshot(path=RUN_DIR / "variant-1d.png")
+    bar_sections.nth(4).screenshot(path=RUN_DIR / "variant-1e.png")
 
     page.set_viewport_size({"width": 390, "height": 844})
     page.reload(wait_until="networkidle")
     if page.locator("body").evaluate("el => el.scrollWidth > document.documentElement.clientWidth"):
         raise RuntimeError("Mobile layout has horizontal overflow")
-    if page.locator(".bar-prototype").count() != 3:
+    if page.locator(".bar-prototype").count() != 5:
         raise RuntimeError("Bar prototypes were lost at the mobile breakpoint")
 
     browser.close()
@@ -38,4 +38,4 @@ with sync_playwright() as playwright:
 if problems:
     raise RuntimeError("Browser errors:\n" + "\n".join(problems))
 
-print("Captured the China-origin figure and a flagged bar chart; verified mobile layout with no browser errors")
+print("Captured variants 1d and 1e; verified mobile layout with no browser errors")

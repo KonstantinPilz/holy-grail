@@ -88,6 +88,9 @@
   .panel-label { fill: var(--text-2); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
   .area-label { fill: #ffffff; font-size: 11px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 2px; }
   .bar-value { fill: #ffffff; font-size: 10px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.22); stroke-width: 1.8px; }
+  .row-label { fill: var(--text); font-size: 11px; font-weight: 500; }
+  .row-value { fill: var(--text-2); font-size: 10.5px; font-weight: 500; }
+  .cell-value { fill: var(--text-2); font-size: 10px; font-weight: 500; }
   .origin-prototype { padding: 30px 0 32px; border-top: 1px solid var(--border); }
   .origin-label { fill: #ffffff; font-size: 10.5px; font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.18); stroke-width: 1.8px; }
   .origin-interval { fill: var(--text-2); font-size: 11px; font-weight: 500; }
@@ -151,6 +154,26 @@
       </div>
       <div class="chart" id="chart-1c"></div>
       <p class="bar-footnote">Rest = SE Asia, India, East Asia ex-China, Middle East, Latin America, Australia &amp; NZ, and Other.</p>
+      <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+    </article>
+
+    <article class="bar-prototype" aria-labelledby="title-1d">
+      <div class="chart-head">
+        <h3 id="title-1d">1d. Centered ribbons</h3>
+        <p class="chart-subtitle">Regional share of deployed FP8 GB300-equivalent compute; block height is proportional to share and centered within each region's row. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+      </div>
+      <div class="chart" id="chart-1d"></div>
+      <p class="bar-footnote">Rows are centered independently and no longer visually sum to 100%.</p>
+      <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
+    </article>
+
+    <article class="bar-prototype" aria-labelledby="title-1e">
+      <div class="chart-head">
+        <h3 id="title-1e">1e. Circle grid</h3>
+        <p class="chart-subtitle">Circle area is proportional to regional share of deployed FP8 GB300-equivalent compute. Each year-end includes direct and legal deployment flows through Q3; smuggling counts full calendar years.</p>
+      </div>
+      <div class="chart" id="chart-1e"></div>
+      <p class="bar-footnote">Circle area uses one common scale; the USA therefore dominates the visual, and no region-specific rescaling is applied.</p>
       <p class="chart-source">Source: TrendForce production aggregates, Epoch deployment data; our estimates.</p>
     </article>
   </section>
@@ -469,6 +492,87 @@
     }
   }
 
+  function regionsBy2026Share() {
+    return REGION_ORDER.slice().sort((a, b) => DATA.shares[b][3] - DATA.shares[a][3]);
+  }
+
+  function drawCenteredRibbons() {
+    const svg = svgFor("chart-1d", 620, "Regional AI compute shares shown as centered blocks and faint connecting ribbons in separate rows, 2023 to 2026");
+    const regions = regionsBy2026Share();
+    const centers = [355, 505, 655, 805];
+    const blockWidth = 108;
+    const rowStart = 74;
+    const rowGap = 53;
+    const heightForShare = value => value / 100 * 44;
+
+    addText(svg, 270, 18, "Region · ordered by 2026E share", "axis-unit", "end");
+    DATA.yearLabels.forEach((label, index) => addText(svg, centers[index], 18, label.replace("EOY ", ""), "axis-unit", "middle"));
+
+    regions.forEach((region, rowIndex) => {
+      const centerY = rowStart + rowIndex * rowGap;
+      const values = DATA.shares[region];
+      addText(svg, 270, centerY + 4, regionLabel(region), "row-label", "end");
+      svg.appendChild(el("line", { x1: centers[0] - blockWidth / 2, y1: centerY, x2: centers[3] + blockWidth / 2, y2: centerY, class: "grid-line" }));
+
+      for (let index = 0; index < values.length - 1; index += 1) {
+        const h1 = heightForShare(values[index]);
+        const h2 = heightForShare(values[index + 1]);
+        const x1 = centers[index] + blockWidth / 2;
+        const x2 = centers[index + 1] - blockWidth / 2;
+        svg.appendChild(el("path", {
+          d: `M${x1},${centerY - h1 / 2} L${x2},${centerY - h2 / 2} L${x2},${centerY + h2 / 2} L${x1},${centerY + h1 / 2} Z`,
+          fill: COLORS[region], opacity: .18
+        }));
+      }
+
+      values.forEach((value, index) => {
+        const blockHeight = heightForShare(value);
+        const rect = el("rect", {
+          x: centers[index] - blockWidth / 2,
+          y: centerY - blockHeight / 2,
+          width: blockWidth,
+          height: blockHeight,
+          fill: COLORS[region],
+          opacity: .92
+        });
+        rect.appendChild(el("title", {}, `${region}: ${DATA.yearLabels[index]} ${value.toFixed(1)}%`));
+        svg.appendChild(rect);
+      });
+
+      addText(svg, 870, centerY + 4, `${values[3].toFixed(1)}%`, "row-value");
+    });
+
+    addText(svg, 870, 18, "Share", "axis-unit");
+  }
+
+  function drawCircleGrid() {
+    const svg = svgFor("chart-1e", 620, "Grid of regional AI compute shares by year, with circle area proportional to share, 2023 to 2026");
+    const regions = regionsBy2026Share();
+    const centers = [355, 505, 655, 805];
+    const rowStart = 74;
+    const rowGap = 53;
+    const radiusForShare = value => Math.sqrt(value / 100) * 32.5;
+
+    addText(svg, 270, 18, "Region · ordered by 2026E share", "axis-unit", "end");
+    DATA.yearLabels.forEach((label, index) => {
+      addText(svg, centers[index], 18, label.replace("EOY ", ""), "axis-unit", "middle");
+      svg.appendChild(el("line", { x1: centers[index], y1: 36, x2: centers[index], y2: 568, class: "grid-line" }));
+    });
+
+    regions.forEach((region, rowIndex) => {
+      const centerY = rowStart + rowIndex * rowGap;
+      const values = DATA.shares[region];
+      addText(svg, 270, centerY + 4, regionLabel(region), "row-label", "end");
+      values.forEach((value, index) => {
+        const radius = radiusForShare(value);
+        const circle = el("circle", { cx: centers[index], cy: centerY, r: radius, fill: COLORS[region], opacity: .92 });
+        circle.appendChild(el("title", {}, `${region}: ${DATA.yearLabels[index]} ${value.toFixed(1)}%`));
+        svg.appendChild(circle);
+        if (value >= 1) addText(svg, centers[index] + radius + 5, centerY + 3.5, `${value.toFixed(1)}%`, "cell-value");
+      });
+    });
+  }
+
   function drawChinaOrigin() {
     const svg = svgFor("chart-origin", 245, "Horizontal composition bar of China's 2026 deployed AI compute by origin, with an indicative 80 percent uncertainty interval for the smuggled share");
     const dims = { left: 58, right: 875, top: 50, bottom: 128 };
@@ -656,6 +760,8 @@
   drawStackedBars("chart-1a", "plain");
   drawStackedBars("chart-1b", "connectors");
   drawStackedBars("chart-1c", "labeled");
+  drawCenteredRibbons();
+  drawCircleGrid();
   drawChinaOrigin();
   drawStackedShare("chart-1", false);
   addLegend("legend-1");
