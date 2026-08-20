@@ -18,8 +18,9 @@ const requiredText = [
   "1e. Circle grid",
   "Final candidate: 1e (consolidated)",
   "1f. Narrow bars with connectors (consolidated)",
-  "Bar height is proportional to consolidated regional share",
+  "Bar height uses one common scale for consolidated regional share",
   "Every bar is labeled; faint lines connect adjacent bar tops and bottoms.",
+  "Shares below 2.5% use a two-unit minimum display height for visibility.",
   "Circle area is proportional to consolidated regional share",
   "Other combines East Asia ex-China (1.8%), India (1.5%), Australia &amp; NZ (0.7%), the prior Other category (0.7%), and Latin America (0.6%).",
   "Unrounded 2026E shares sum to 5.2%; the displayed component shares sum to approximately 5.3% because of rounding.",
@@ -132,26 +133,35 @@ if (!html.includes("const finalRowGap = 45")) {
   throw new Error("Expected compact row spacing in the final candidate");
 }
 if (!html.includes('const FINAL_REGION_ORDER = ["USA", "Europe", "China", "SE Asia", "Middle East", "Other"]')) {
-  throw new Error("Final variants must share the required six-row ordering");
+  throw new Error("The final circle grid order changed unexpectedly");
 }
-if (!html.includes("const centers = [150, 205, 260, 315]")) {
+if (!html.includes('const FINAL_1F_REGION_ORDER = ["USA", "China", "Europe", "SE Asia", "Middle East", "Other"]')) {
+  throw new Error("Variant 1f must place China above Europe");
+}
+if (!html.includes("const centers = [145, 195, 245, 295]")) {
   throw new Error("Variant 1f year columns must use the tightened spacing");
 }
-if (!html.includes("const narrowBarWidth = 36")) {
-  throw new Error("Variant 1f bars must use the requested wider geometry");
+if (!html.includes("const narrowBarWidth = 14")) {
+  throw new Error("Variant 1f bars must use the requested slim geometry");
 }
-if (!html.includes("const rowGap = 42")) {
-  throw new Error("Variant 1f rows must use the tightened spacing");
+if (!html.includes("const rowGap = 48")) {
+  throw new Error("Variant 1f rows must leave enough vertical room for the taller scale");
 }
 if (!html.includes("const connectorOpacity = .24")) {
   throw new Error("Variant 1f connector lines must remain faint");
 }
-if (!html.includes("heightForShare = value => value / 100 * 44")) {
+if (!html.includes("heightForShare = value => value / 100 * 80")) {
   throw new Error("Variant 1f bar height must use one common linear share scale");
+}
+if (!html.includes("const minVisibleHeight = 2")) {
+  throw new Error("Variant 1f must keep the smallest regional bars clearly visible");
 }
 const variant1fFunction = html.slice(html.indexOf("function drawNarrowBarConnectors()"), html.indexOf("function drawCenteredRibbons()"));
 if (variant1fFunction.includes('el("polygon"')) {
   throw new Error("Variant 1f must use connector lines rather than filled bands");
+}
+if (variant1fFunction.includes('class: "grid-line"')) {
+  throw new Error("Variant 1f must not draw a center or row-axis line");
 }
 if (!variant1fFunction.includes("const top = centerY - height / 2") || !variant1fFunction.includes("const bottom = centerY + height / 2")) {
   throw new Error("Variant 1f bars must be vertically centered on each row axis");

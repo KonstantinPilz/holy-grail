@@ -97,3 +97,11 @@
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection found no clipped labels, overlaps, or residual filled connector bands.
 - Published in commit `5b15645` (`Revise consolidated connector chart`) and pushed to `main`.
 - GitHub Pages updated on the fourth polling attempt. Live browser QA returned HTTP 200 and confirmed 24 centered bars, 36 envelope connector lines, zero connector polygons, 24 value labels, zero browser errors, and the noindex directive.
+
+## Consolidated narrow-bar connector revision 2 (2026-08-20)
+
+- Revised variant 1f in place again while preserving its title, data, flags, tight margins, centered geometry, and all-value labels.
+- Gave 1f its own row order—USA, China, Europe, SE Asia, Middle East, Other—without changing the final 1e circle-grid order.
+- Reduced bar width from 36 to 14 view-box units and increased the common linear height scale from 44 to 80 units per 100 share points. A disclosed two-unit display minimum applies below 2.5%, keeping the 0.8–0.9% Middle East bars visible while labels retain the exact rounded shares.
+- Removed all six row-center strokes. The only between-year marks are the existing paired 24%-opacity lines joining adjacent bar tops and bottoms.
+- Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection found no clipped labels, overlaps, center lines, or residual filled bands.
