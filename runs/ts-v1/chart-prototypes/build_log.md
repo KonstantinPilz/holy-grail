@@ -74,3 +74,5 @@
 - Consolidated Other is 6.8%, 6.2%, 5.8%, and 5.2% across 2023–2026E. The individually displayed 2026E component shares sum to approximately 5.3% because each is rounded to one decimal; the chart geometry and 5.2% label use the unrounded 5.1821% total.
 - Tightened the chart to a 520×340 view box with a 600-pixel display cap, 45-unit row spacing, and 90-unit year-column spacing. The largest USA circles and adjacent value labels approach one another without overlapping. Labels start at the left edge of the compact plot.
 - Browser QA rendered all eleven SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and captured `final-candidate-1e.png`. Visual inspection found no clipped labels or overlapping circles.
+- Published in commit `748c2eb` (`Promote consolidated circle grid candidate`) and pushed to `main`.
+- GitHub Pages updated on the sixth polling attempt. Live browser QA returned HTTP 200, confirmed the final candidate is the first section, preserved the original 1e, rendered eleven SVGs with zero console or page errors, and retained the noindex directive.
