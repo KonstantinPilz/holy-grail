@@ -122,3 +122,5 @@
 - Drew both lines before the annual bars in SVG order, so the 2024 and 2025 bars sit on top as the lines pass behind them. Connector opacity and stroke width remain unchanged.
 - Updated the chart note to describe the first-to-last connection. Spacing, centered alignment, row order, bar geometry, labels, flags, data, and all other page content remain unchanged.
 - Local browser QA rendered all twelve SVG charts without console or page errors, found no horizontal overflow at 390 pixels, and refreshed `variant-1f.png`. Visual inspection confirmed twelve total connector lines, correct middle-bar occlusion, and no clipping or overlap.
+- Published in commit `a89798a` (`Connect first and last bars in variant 1f`) and pushed to `main`.
+- GitHub Pages updated on the third polling attempt. Live browser QA returned HTTP 200 and confirmed twelve connector lines spanning x=145 to x=295, correct below-bar SVG ordering for every region, 24 bars, 24 labels, zero browser errors, and the noindex directive.
