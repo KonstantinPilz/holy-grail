@@ -455,9 +455,11 @@
 
     <p class="fine" id="arr-fine">
       Annualized run rates where reported (typically last month × 12); audited annual revenue for MiniMax and
-      Z.ai’s pre-2026 points — bases differ and are marked per point. Z.ai’s 2026 points cover its API business
-      only. DeepSeek’s 2025 point is the company’s theoretical ceiling at list prices, not revenue. OpenAI’s last
-      reported figure is February 2026.
+      Z.ai’s pre-2026 points — bases differ and are marked per point. Z.ai’s 2026 points cover its API platform
+      only. MiniMax’s August 2026 figure annualizes one week, not a month. DeepSeek’s 2025 point is the company’s
+      theoretical ceiling at list prices, not revenue. OpenAI’s and Anthropic’s 2026 press-reported figures are
+      floors (“more than”). Realized Q2 2026 revenue (WSJ): Anthropic $11.6B, OpenAI $6.7B — quarter averages lag
+      exit run rates.
       Data &amp; sources: <a id="arr-sheet-link" href="https://docs.google.com/spreadsheets/d/1XnD7OjzJExUS4sw6GCYf_JD82Yf9XuE710Zvs_zrzFQ/edit">spreadsheet</a>.
     </p>
   </section>
@@ -2443,7 +2445,7 @@ window.addEventListener("resize", renderForecast2026); // forecast2026
     const vals = [];
     for (const s of SERIES) for (const p of s.points) vals.push(p.v);
     const maxV = Math.max.apply(null, vals), minV = Math.min.apply(null, vals);
-    // Revenue spans about four decades here ($3M to $47B), so the axis is log
+    // Revenue spans about four decades here ($3M to $65B), so the axis is log
     // only — a linear axis would put five of the seven labs on the floor.
     const logLo = Math.log10(minV) - 0.10, logHi = Math.log10(maxV) + 0.06;
     const x = i => L + (i - I0) / SPAN * plotW;
