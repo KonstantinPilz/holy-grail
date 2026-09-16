@@ -537,7 +537,7 @@
   function drawFinalCircleGrid() {
     const svg = svgFor("chart-final-1e", 340, "Compact grid of six consolidated regional AI compute shares by year, with circle area proportional to share, 2023 to 2026");
     svg.setAttribute("viewBox", "0 0 520 340");
-    const finalCenters = [150, 240, 330, 420];
+    const finalCenters = [140, 235, 330, 425];
     const finalRowGap = 45;
     const rowStart = 64;
     const radiusForShare = value => Math.sqrt(value / 100) * 32.5;
@@ -825,7 +825,7 @@
         labels.push({ region, y: points[3][1], value: values[3] });
       });
 
-      resolveLabels(labels, top + 5, bottom - 5, regions.length > 2 ? 15 : 18).forEach(item => {
+      resolveLabels(labels, top + 5, bottom - 5, 18).forEach(item => {
         svg.appendChild(el("path", { d: `M${dims.right + 4},${item.y} L${dims.right + 18},${item.labelY} L${dims.right + 25},${item.labelY}`, fill: "none", stroke: COLORS[item.region], "stroke-width": 1 }));
         const shortLabel = SHORT[item.region] || item.region;
         const flaggedLabel = FLAGS[item.region] ? `${FLAGS[item.region]} ${shortLabel}` : shortLabel;
