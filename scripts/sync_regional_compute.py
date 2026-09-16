@@ -11,6 +11,7 @@ import re
 import tempfile
 import urllib.parse
 import urllib.request
+from datetime import date
 from pathlib import Path
 
 
@@ -200,6 +201,10 @@ def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]
     for row in rows[header_index + 1:]:
         if not row or not isinstance(row[0], str):
             continue
+        # Later tables repeat region names with different columns (for example S3
+        # contains annual shares). Only the headline table supplies map values.
+        if norm(row[0]) == "world total" or norm(row[0]).startswith("table "):
+            break
         region_key = region_aliases.get(norm(row[0]))
         if region_key:
             by_name[region_key] = row
@@ -271,6 +276,26 @@ def atomic_write(path: Path, content: str) -> bool:
     return True
 
 
+def update_index(index: str, updated: str, cache_tag: str) -> str:
+    new_index, count = re.subn(
+        r'regional_data\.js\?v=[^"<]+',
+        f"regional_data.js?v={cache_tag}",
+        index,
+    )
+    if count != 1:
+        raise ValueError(f"Expected one regional_data.js tag, found {count}")
+    source_date = date.fromisoformat(updated)
+    date_text = f"{source_date:%B} {source_date.day}, {source_date.year}"
+    new_index, count = re.subn(
+        r'(regional compute model, Summary tab</a> \(updated )[^)]+(\))',
+        lambda match: match[1] + date_text + match[2],
+        new_index,
+    )
+    if count != 1:
+        raise ValueError(f"Expected one regional source date, found {count}")
+    return new_index
+
+
 def main() -> None:
     updated, regions = parse_values(sheet_values(access_token()))
     payload = {
@@ -282,16 +307,8 @@ def main() -> None:
     serialized = json.dumps(payload, indent=2, ensure_ascii=False)
     data_content = f'"use strict";\n\nwindow.REGIONAL_COMPUTE = Object.freeze({serialized});\n'
     cache_tag = hashlib.sha256(data_content.encode()).hexdigest()[:10]
+    new_index = update_index(INDEX_PATH.read_text(), updated, cache_tag)
     data_changed = atomic_write(DATA_PATH, data_content)
-
-    index = INDEX_PATH.read_text()
-    new_index, count = re.subn(
-        r'regional_data\.js\?v=[^"<]+',
-        f"regional_data.js?v={cache_tag}",
-        index,
-    )
-    if count != 1:
-        raise ValueError(f"Expected one regional_data.js tag, found {count}")
     index_changed = atomic_write(INDEX_PATH, new_index)
     state = "updated" if data_changed or index_changed else "unchanged"
     print(f"regional compute {state}: sheet {updated}, cache {cache_tag}")

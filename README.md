@@ -43,7 +43,9 @@ GB300-equivalents, with 90% CIs and a three-mode toggle:
    `docs/index.html` sits between `<!-- regional-map -->` delimiters.
 6. `scripts/sync_regional_compute.py` — authenticated Summary-tab reader and validated
    generator for `docs/regional_data.js`. It keys rows by region name, checks every expected
-   region and value, and changes the data asset's cache key when values change.
+   region and value, and updates the asset's cache key and source-date footnote. The reader
+   stops at the headline table's World total so later time-series rows cannot overwrite
+   the compute values. Run `python3 scripts/test_sync_regional_compute.py` to check this boundary.
 7. `scripts/sync_regional_site.sh` — unattended publisher used by the hourly VM schedule.
    It refuses to run on a dirty checkout, fast-forwards first, and only commits when the
    generated regional data changed.
