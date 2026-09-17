@@ -9,18 +9,7 @@ exec 9>"$STATE_DIR/regional-sync.lock"
 /usr/bin/flock -n 9 || exit 0
 
 cd "$REPO"
-if [[ -n "$(/usr/bin/git status --porcelain)" ]]; then
-  echo "regional sync skipped: repository has uncommitted changes" >&2
-  exit 1
-fi
-
-/usr/bin/git pull --ff-only --quiet origin main
-/usr/bin/python3 scripts/sync_regional_compute.py
-
-if /usr/bin/git diff --quiet -- docs/regional_data.js docs/index.html; then
-  exit 0
-fi
-
-/usr/bin/git add docs/regional_data.js docs/index.html
-/usr/bin/git commit -m "Auto-sync regional compute data"
-/usr/bin/git push --quiet origin main
+# The Python runner shares the publication lock with the labs publisher and
+# stages only the audited encrypted build. This lock suppresses duplicate cron
+# invocations of this wrapper; it is distinct from the shared publication lock.
+exec /usr/bin/python3 scripts/publish_site.py regional

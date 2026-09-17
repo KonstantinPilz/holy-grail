@@ -15,7 +15,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-DOCS = ROOT / "docs"
+DOCS = ROOT / "site"
 INDEX_HTML = DOCS / "index.html"
 REGIONAL_MAP_JS = DOCS / "regional_map.js"
 REGIONAL_DATA_JS = DOCS / "regional_data.js"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync the public regional-compute map from the Google Sheet Summary tab."""
+"""Sync private regional-map sources from the Google Sheet Summary tab."""
 
 from __future__ import annotations
 
@@ -22,8 +22,8 @@ SOURCE_URL = (
     f"{SHEET_ID}/edit?gid={SHEET_GID}#gid={SHEET_GID}"
 )
 REPO = Path(__file__).resolve().parents[1]
-DATA_PATH = REPO / "docs" / "regional_data.js"
-INDEX_PATH = REPO / "docs" / "index.html"
+DATA_PATH = REPO / "site" / "regional_data.js"
+INDEX_PATH = REPO / "site" / "index.html"
 CREDENTIALS_PATH = Path(
     os.environ.get(
         "GOOGLE_WORKSPACE_CREDENTIALS",
