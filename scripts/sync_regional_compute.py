@@ -101,10 +101,14 @@ def sheet_values(token: str) -> list[list[object]]:
     return request_json(values_url, headers=headers).get("values", [])
 
 
-def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]]:
-    def norm(value: object) -> str:
-        return re.sub(r"\s+", " ", str(value).replace("\xa0", " ").strip()).strip().lower()
+def norm(value: object) -> str:
+    """Match ASCII labels even when the sheet adds flags or Unicode whitespace."""
+    text = re.sub(r"\s+", " ", str(value))
+    text = re.sub(r"[^\x00-\x7f]", "", text)
+    return re.sub(r"\s+", " ", text).strip().lower()
 
+
+def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]]:
     def token_set(value: object) -> set[str]:
         return set(re.findall(r"[a-z0-9]+", norm(value)))
 

@@ -3,7 +3,21 @@
 
 import unittest
 
-from sync_regional_compute import REGION_META, parse_values, update_index
+from sync_regional_compute import REGION_META, norm, parse_values, update_index
+
+
+REGION_FLAGS = {
+    "USA": "🇺🇸",
+    "China": "🇨🇳",
+    "Europe": "🇪🇺",
+    "SE Asia": "🇸🇬🇲🇾",
+    "India": "🇮🇳",
+    "East Asia ex-China": "🇯🇵🇰🇷🇹🇼",
+    "Australia & NZ": "🇦🇺🇳🇿",
+    "Middle East": "🇦🇪🇸🇦",
+    "Latin America": "🇧🇷🇲🇽",
+    "Other": "🌍",
+}
 
 
 def summary_rows():
@@ -28,6 +42,33 @@ def summary_rows():
 
 
 class SummaryTableBoundaryTests(unittest.TestCase):
+    def test_region_flags_and_whitespace_normalize_to_original_names(self):
+        for name, flags in REGION_FLAGS.items():
+            with self.subTest(region=name):
+                self.assertEqual(norm(name), name.lower())
+                self.assertEqual(norm(f"{flags} {name}"), name.lower())
+                spaced_name = name.replace(" ", "\u202f\t")
+                self.assertEqual(norm(f"\t{flags}\xa0 {spaced_name}\n"), name.lower())
+
+    def test_flagged_tables_preserve_all_values_and_map_labels(self):
+        rows = summary_rows()
+        # Other remains excluded from the map, with or without its globe.
+        total_index = next(i for i, row in enumerate(rows) if row and row[0] == "World total")
+        rows.insert(total_index, ["Other", 80, 100, 120, 0.08, 0.1, 0.12, 50, 0.1, 200, 0.1])
+        expected = parse_values(rows)
+        flagged_rows = [
+            [f"{REGION_FLAGS[row[0]]} {row[0]}", *row[1:]]
+            if row and row[0] in REGION_FLAGS else row[:]
+            for row in rows
+        ]
+        self.assertEqual(parse_values(flagged_rows), expected)
+
+    def test_flag_does_not_make_unknown_region_match(self):
+        rows = summary_rows()
+        rows[3][0] = "🇨🇳 Unknown region"  # Cannot stand in for China.
+        with self.assertRaisesRegex(ValueError, "Missing expected regions.*China"):
+            parse_values(rows)
+
     def test_later_share_table_cannot_overwrite_headline_compute(self):
         updated, regions = parse_values(summary_rows())
         self.assertEqual(updated, "2026-09-16")

@@ -44,8 +44,11 @@ GB300-equivalents, with 90% CIs and a three-mode toggle:
 6. `scripts/sync_regional_compute.py` — authenticated Summary-tab reader and validated
    generator for `docs/regional_data.js`. It keys rows by region name, checks every expected
    region and value, and updates the asset's cache key and source-date footnote. The reader
-   stops at the headline table's World total so later time-series rows cannot overwrite
-   the compute values. Run `python3 scripts/test_sync_regional_compute.py` to check this boundary.
+   ignores flag emoji and normalizes whitespace when matching region names; generated map
+   labels stay canonical. It stops at the headline table's World total so later time-series
+   rows cannot overwrite the compute values. Run `python3 scripts/test_sync_regional_compute.py`
+   to check flagged/unflagged parity and this boundary, and `python3 scripts/test_regional_map.py`
+   for the map regression checks.
 7. `scripts/sync_regional_site.sh` — unattended publisher used by the hourly VM schedule.
    It refuses to run on a dirty checkout, fast-forwards first, and only commits when the
    generated regional data changed.
