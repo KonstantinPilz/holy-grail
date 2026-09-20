@@ -1,0 +1,22 @@
+sync_labs.py
+sync_labs.log*
+labs_payload.sha
+__pycache__/
+*.py[cod]
+
+# Local plaintext source, inputs, and verification evidence. Never publish.
+/site/
+/sitegate/
+/data/
+/forecast2026_input.json
+/runs/
+/chip_spec_memo_2026-07-28.md
+/SCAFFOLD_NOTES.md
+/PROGRESS.md
+/STATUS.md
+/AGENT_DONE.json
+/BLOCKED.md
+/make_embed.py
+/build_data.py
+/build_forecast2026.py
+/make_epoch_sheet.py

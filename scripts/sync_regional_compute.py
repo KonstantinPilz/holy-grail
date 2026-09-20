@@ -1,0 +1,322 @@
+#!/usr/bin/env python3
+"""Sync private regional-map sources from the Google Sheet Summary tab."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import math
+import os
+import re
+import tempfile
+import urllib.parse
+import urllib.request
+from datetime import date
+from pathlib import Path
+
+
+SHEET_ID = "1fKutDSCU4Hce-YAKra6zQX2-Y0uANfwc8_Atn7jguuc"
+SHEET_GID = 1904826130
+SOURCE_URL = (
+    "https://docs.google.com/spreadsheets/d/"
+    f"{SHEET_ID}/edit?gid={SHEET_GID}#gid={SHEET_GID}"
+)
+REPO = Path(__file__).resolve().parents[1]
+DATA_PATH = REPO / "site" / "regional_data.js"
+INDEX_PATH = REPO / "site" / "index.html"
+CREDENTIALS_PATH = Path(
+    os.environ.get(
+        "GOOGLE_WORKSPACE_CREDENTIALS",
+        "/home/ubuntu/.google_workspace_mcp/credentials/konstantinsclaude@gmail.com.json",
+    )
+)
+
+REGION_META = {
+    "China": {"key": "china", "short": "CN", "coordinates": [104, 35]},
+    "USA": {"key": "us", "name": "United States", "short": "US", "coordinates": [-101, 38]},
+    "Europe": {"key": "europe", "short": "EU", "coordinates": [13, 51]},
+    "SE Asia": {"key": "sea", "name": "Southeast Asia", "short": "SEA", "coordinates": [106, 7]},
+    "India": {"key": "india", "short": "IN", "coordinates": [78, 22]},
+    "East Asia ex-China": {"key": "east-asia", "name": "Japan, Korea & Taiwan", "short": "EA", "coordinates": [139, 37]},
+    "Middle East": {"key": "middle-east", "short": "ME", "coordinates": [46, 27]},
+    "Latin America": {"key": "latam", "short": "LATAM", "coordinates": [-60, -16]},
+    "Australia & NZ": {"key": "anz", "name": "Australia", "short": "ANZ", "coordinates": [146, -34]},
+}
+
+REGION_COUNTRIES = {
+    "us": ["USA"],
+    "china": ["CHN"],
+    "india": ["IND"],
+    "east-asia": ["JPN", "KOR", "TWN"],
+    "anz": ["AUS", "NZL"],
+    "sea": ["BRN", "KHM", "IDN", "LAO", "MYS", "MMR", "PHL", "SGP", "THA", "TLS", "VNM"],
+    "europe": ["ALB", "AND", "AUT", "BEL", "BGR", "BIH", "CHE", "CYP", "CZE", "DEU", "DNK", "ESP", "EST", "FIN", "FRA", "GBR", "GRC", "HRV", "HUN", "IRL", "ISL", "ITA", "LTU", "LUX", "LVA", "MDA", "MKD", "MLT", "MNE", "NLD", "NOR", "POL", "PRT", "ROU", "SRB", "SVK", "SVN", "SWE", "UKR"],
+    "middle-east": ["ARE", "BHR", "IRN", "IRQ", "ISR", "JOR", "KWT", "LBN", "OMN", "QAT", "SAU", "TUR", "YEM"],
+    "latam": ["ARG", "BHS", "BLZ", "BOL", "BRA", "CHL", "COL", "CRI", "CUB", "DOM", "ECU", "GTM", "GUY", "HND", "HTI", "JAM", "MEX", "NIC", "PAN", "PER", "PRY", "SLV", "SUR", "TTO", "URY", "VEN"],
+}
+
+
+def request_json(url: str, *, data: bytes | None = None, headers: dict[str, str] | None = None) -> dict:
+    request = urllib.request.Request(url, data=data, headers=headers or {})
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read())
+
+
+def access_token() -> str:
+    with CREDENTIALS_PATH.open() as handle:
+        credentials = json.load(handle)
+    payload = urllib.parse.urlencode(
+        {
+            "client_id": credentials["client_id"],
+            "client_secret": credentials["client_secret"],
+            "refresh_token": credentials["refresh_token"],
+            "grant_type": "refresh_token",
+        }
+    ).encode()
+    return request_json(
+        credentials["token_uri"],
+        data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )["access_token"]
+
+
+def sheet_values(token: str) -> list[list[object]]:
+    headers = {"Authorization": f"Bearer {token}"}
+    metadata_url = (
+        f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}"
+        "?fields=sheets(properties(sheetId,title))"
+    )
+    metadata = request_json(metadata_url, headers=headers)
+    title = next(
+        sheet["properties"]["title"]
+        for sheet in metadata["sheets"]
+        if sheet["properties"]["sheetId"] == SHEET_GID
+    )
+    quoted = "'" + title.replace("'", "''") + "'!A:Z"
+    encoded_range = urllib.parse.quote(quoted, safe="")
+    values_url = (
+        f"https://sheets.googleapis.com/v4/spreadsheets/{SHEET_ID}/values/{encoded_range}"
+        "?majorDimension=ROWS&valueRenderOption=UNFORMATTED_VALUE"
+    )
+    return request_json(values_url, headers=headers).get("values", [])
+
+
+def norm(value: object) -> str:
+    """Match ASCII labels even when the sheet adds flags or Unicode whitespace."""
+    text = re.sub(r"\s+", " ", str(value))
+    text = re.sub(r"[^\x00-\x7f]", "", text)
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
+def parse_values(rows: list[list[object]]) -> tuple[str, list[dict[str, object]]]:
+    def token_set(value: object) -> set[str]:
+        return set(re.findall(r"[a-z0-9]+", norm(value)))
+
+    def pick_column(predicate, prefer_p50: bool = True) -> int:
+        matches = [
+            (index, toks)
+            for index, toks in header_tokens.items()
+            if predicate(toks)
+        ]
+        if not matches:
+            return -1
+        if prefer_p50:
+            p50 = [index for index, toks in matches if "p50" in toks]
+            if p50:
+                return p50[0]
+        return matches[0][0]
+
+    updated = next(
+        (
+            match.group(1)
+            for row in rows
+            for cell in row[:1]
+            if (match := re.fullmatch(r"Last updated (\d{4}-\d{2}-\d{2})", str(cell)))
+        ),
+        None,
+    )
+    if not updated:
+        raise ValueError("Summary tab has no 'Last updated YYYY-MM-DD' line")
+
+    header_index = next(
+        index
+        for index, row in enumerate(rows)
+        if row and isinstance(row[0], str) and norm(row[0]) == "region"
+    )
+    header_tokens = {
+        index: token_set(name)
+        for index, name in enumerate(rows[header_index])
+    }
+
+    def metric_columns(metric: str) -> dict[str, int]:
+        candidate_columns = [
+            (index, toks)
+            for index, toks in header_tokens.items()
+            if metric in toks and "gb300e" in toks and "share" not in toks
+        ]
+        if not candidate_columns:
+            return {}
+
+        by_level = {}
+        for level in ("p10", "p50", "p90"):
+            by_level[level] = next(
+                (index for index, toks in candidate_columns if level in toks),
+                -1,
+            )
+
+        median = by_level["p50"]
+        if median < 0:
+            median = candidate_columns[0][0]
+        by_level["median"] = median
+        return by_level
+
+    fp8_cols = metric_columns("fp8")
+    fp4_col = pick_column(
+        lambda token: "fp4" in token and "gb300e" in token and "share" not in token,
+        prefer_p50=False,
+    )
+    bw_col = pick_column(
+        lambda token: "bw" in token and "gb300e" in token and "share" not in token,
+        prefer_p50=False,
+    )
+
+    missing_columns = []
+    if not fp8_cols:
+        missing_columns.append("FP8 GB300e")
+    if fp4_col < 0:
+        missing_columns.append("FP4 GB300e")
+    if bw_col < 0:
+        missing_columns.append("BW GB300e")
+    if missing_columns:
+        raise ValueError(f"Missing expected columns: {missing_columns}")
+
+    region_aliases = {
+        norm("USA"): "usa",
+        norm("United States"): "usa",
+        norm("SE Asia"): "sea",
+        norm("Southeast Asia"): "sea",
+        norm("East Asia ex-China"): "east-asia",
+        norm("Australia & NZ"): "anz",
+        norm("Australia and NZ"): "anz",
+    }
+    region_aliases.update({norm(key): key for key in REGION_META})
+
+    by_name = {}
+    for row in rows[header_index + 1:]:
+        if not row or not isinstance(row[0], str):
+            continue
+        # Later tables repeat region names with different columns (for example S3
+        # contains annual shares). Only the headline table supplies map values.
+        if norm(row[0]) == "world total" or norm(row[0]).startswith("table "):
+            break
+        region_key = region_aliases.get(norm(row[0]))
+        if region_key:
+            by_name[region_key] = row
+
+    missing = set(REGION_META) - set(by_name)
+    if missing:
+        raise ValueError(f"Missing expected regions: {sorted(missing)}")
+
+    # Require the median column for each mode when scaling bars.
+    required_index = max(fp8_cols["median"], fp4_col, bw_col)
+    regions = []
+    for sheet_name, meta in REGION_META.items():
+        row = by_name[sheet_name]
+        if len(row) <= required_index:
+            raise ValueError(f"Incomplete row for {sheet_name}")
+        fp8_median = row[fp8_cols["median"]]
+        fp4_value = row[fp4_col]
+        bw_value = row[bw_col]
+        fp8_ci = {
+            "p10": fp8_cols.get("p10", -1),
+            "p90": fp8_cols.get("p90", -1),
+        }
+        fp8_values = [fp8_median, fp4_value, bw_value]
+        if not all(
+            isinstance(value, (int, float)) and math.isfinite(value) and value > 0
+            for value in fp8_values
+        ):
+            raise ValueError(
+                f"Invalid compute values for {sheet_name}: "
+                f"{[fp8_median, fp4_value, bw_value]}"
+            )
+        fp8_p10 = row[fp8_ci["p10"]] if fp8_ci["p10"] >= 0 else None
+        fp8_p90 = row[fp8_ci["p90"]] if fp8_ci["p90"] >= 0 else None
+        if fp8_p10 is not None and (
+            not isinstance(fp8_p10, (int, float)) or not math.isfinite(fp8_p10)
+        ):
+            raise ValueError(f"Invalid FP8 p10 value for {sheet_name}: {fp8_p10}")
+        if fp8_p90 is not None and (
+            not isinstance(fp8_p90, (int, float)) or not math.isfinite(fp8_p90)
+        ):
+            raise ValueError(f"Invalid FP8 p90 value for {sheet_name}: {fp8_p90}")
+        regions.append(
+            {
+                "key": meta["key"],
+                "name": meta.get("name", sheet_name),
+                "short": meta["short"],
+                "coordinates": meta["coordinates"],
+                "fp8": round(fp8_median),
+                "fp8P10": round(fp8_p10) if fp8_p10 is not None else None,
+                "fp8P90": round(fp8_p90) if fp8_p90 is not None else None,
+                "fp4": round(fp4_value),
+                "fp4P10": None,
+                "fp4P90": None,
+                "bw": round(bw_value),
+                "bwP10": None,
+                "bwP90": None,
+            }
+        )
+    return updated, regions
+
+
+def atomic_write(path: Path, content: str) -> bool:
+    if path.read_text() == content:
+        return False
+    with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as handle:
+        handle.write(content)
+        temporary = Path(handle.name)
+    temporary.replace(path)
+    return True
+
+
+def update_index(index: str, updated: str, cache_tag: str) -> str:
+    new_index, count = re.subn(
+        r'regional_data\.js\?v=[^"<]+',
+        f"regional_data.js?v={cache_tag}",
+        index,
+    )
+    if count != 1:
+        raise ValueError(f"Expected one regional_data.js tag, found {count}")
+    source_date = date.fromisoformat(updated)
+    date_text = f"{source_date:%B} {source_date.day}, {source_date.year}"
+    new_index, count = re.subn(
+        r'(regional compute model, Summary tab</a> \(updated )[^)]+(\))',
+        lambda match: match[1] + date_text + match[2],
+        new_index,
+    )
+    if count != 1:
+        raise ValueError(f"Expected one regional source date, found {count}")
+    return new_index
+
+
+def main() -> None:
+    updated, regions = parse_values(sheet_values(access_token()))
+    payload = {
+        "updated": updated,
+        "sourceUrl": SOURCE_URL,
+        "regions": regions,
+        "regionCountries": REGION_COUNTRIES,
+    }
+    serialized = json.dumps(payload, indent=2, ensure_ascii=False)
+    data_content = f'"use strict";\n\nwindow.REGIONAL_COMPUTE = Object.freeze({serialized});\n'
+    cache_tag = hashlib.sha256(data_content.encode()).hexdigest()[:10]
+    new_index = update_index(INDEX_PATH.read_text(), updated, cache_tag)
+    data_changed = atomic_write(DATA_PATH, data_content)
+    index_changed = atomic_write(INDEX_PATH, new_index)
+    state = "updated" if data_changed or index_changed else "unchanged"
+    print(f"regional compute {state}: sheet {updated}, cache {cache_tag}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,191 @@
+<!doctype html>
+<!-- holy-grail encrypted gate v1 -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Holy Grail · Unlock</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f7f7f5;color:#242424}
+body{font:16px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh;display:grid;place-items:center;padding:24px}
+#site-gate{width:100%;max-width:380px;background:#fff;border:1px solid #dededb;border-radius:16px;padding:32px;box-shadow:0 10px 36px #00000008}
+h1{font-size:25px;line-height:1.2;margin:0 0 12px}p{font-size:14px;color:#666;margin:0 0 24px}
+label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}input,button{font:inherit;width:100%;border-radius:7px;padding:12px}
+input{background:transparent;border:1px solid #bbb;color:inherit}input:focus{outline:2px solid #327b91;outline-offset:2px}
+button{margin-top:14px;background:#206b81;color:white;border:0;font-weight:600;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+#gate-error{font-size:13px;color:#b22222;min-height:20px;margin:12px 0 0}.gate-note{font-size:12px;margin:12px 0 0}
+@media(prefers-color-scheme:dark){html,body{background:#1b1b1b;color:#e7e7e7}#site-gate{background:#242424;border-color:#444}p{color:#aaa}input{border-color:#666}#gate-error{color:#ff9999}}
+</style>
+</head>
+<body>
+<form id="site-gate">
+<h1>Holy Grail</h1>
+<p>This site is encrypted. Enter the password to unlock it.</p>
+<label for="gate-password">Password</label>
+<input id="gate-password" name="password" type="password" autocomplete="current-password" autofocus required>
+<button id="gate-unlock" type="submit">Unlock</button>
+<p id="gate-error" role="alert" aria-live="polite"></p>
+<p class="gate-note">Decrypted in your browser. Your password stays on this device.</p>
+<noscript><p>JavaScript is required to decrypt this site.</p></noscript>
+</form>
+<script>
+(function () {
+  "use strict";
+  const ENTRY = "index.html";
+  const ROOT = new URL("./", location.href);
+  const BUNDLE = new URL("./site.enc.json?v=7c6114943bb26772", location.href);
+  const PASSWORD_KEY = "labs_pw";
+  const form = document.getElementById("site-gate");
+  const input = document.getElementById("gate-password");
+  const button = document.getElementById("gate-unlock");
+  const error = document.getElementById("gate-error");
+  const nativeFetch = window.fetch.bind(window);
+  const decoder = new TextDecoder();
+  let running = false;
+
+  function bytes(value) {
+    return Uint8Array.from(atob(value), c => c.charCodeAt(0));
+  }
+
+  function fileKey(value, base = document.baseURI) {
+    try {
+      const url = new URL(value, base);
+      if (url.origin !== ROOT.origin || !url.pathname.startsWith(ROOT.pathname)) return null;
+      const name = decodeURIComponent(url.pathname.slice(ROOT.pathname.length));
+      return name || "index.html";
+    } catch (_) { return null; }
+  }
+
+  async function decrypt(password) {
+    const response = await nativeFetch(BUNDLE, {cache: "no-store"});
+    if (!response.ok) throw new Error("The encrypted site could not be loaded. Please retry.");
+    const envelope = await response.json();
+    if (envelope.format !== "holy-grail-site-v1" || envelope.iterations !== 310000) {
+      throw new Error("The encrypted site has an unsupported format.");
+    }
+    const rawKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({name: "PBKDF2", salt: bytes(envelope.salt), iterations: envelope.iterations, hash: "SHA-256"}, rawKey, {name: "AES-GCM", length: 256}, false, ["decrypt"]);
+    let plaintext;
+    try {
+      plaintext = await crypto.subtle.decrypt({name: "AES-GCM", iv: bytes(envelope.iv)}, key, bytes(envelope.ciphertext));
+    } catch (_) {
+      throw new Error("Incorrect password, or the encrypted site is damaged.");
+    }
+    const payload = JSON.parse(decoder.decode(plaintext));
+    if (payload.format !== "holy-grail-site-v1" || !payload.files || !payload.files[ENTRY]) {
+      throw new Error("The encrypted page is missing.");
+    }
+    return payload.files;
+  }
+
+  function render(files) {
+    const data = new Map();
+    const urls = new Map();
+    const building = new Set();
+    for (const [name, item] of Object.entries(files)) {
+      data.set(name, {bytes: bytes(item.data), type: item.type});
+    }
+    function sourceURL(name) { return new URL(name, ROOT).href; }
+    function rewriteCSS(css, base) {
+      return css.replace(/url\(\s*(["']?)([^\s"')]+)\1\s*\)/g, (all, quote, value) => {
+        const key = fileKey(value, base);
+        return key && data.has(key) ? "url(" + JSON.stringify(assetURL(key)) + ")" : all;
+      });
+    }
+    function assetURL(name) {
+      if (urls.has(name)) return urls.get(name);
+      if (building.has(name)) throw new Error("Circular private asset imports are unsupported.");
+      building.add(name);
+      const item = data.get(name);
+      let body = item.bytes;
+      if (name.endsWith(".js")) {
+        // Leave external imports untouched. Resolve private module imports from
+        // their original paths because Blob URLs have no relative directory.
+        body = decoder.decode(body).replace(/(\bimport\s*\(\s*|\bfrom\s+|\bimport\s+)(["'])([^"'\n\s(){};,=+\\]+)\2/g, (all, lead, quote, spec) => {
+          const key = fileKey(spec, sourceURL(name));
+          return key && data.has(key) ? lead + quote + assetURL(key) + quote : all;
+        });
+      } else if (name.endsWith(".css")) {
+        body = rewriteCSS(decoder.decode(body), sourceURL(name));
+      }
+      const url = URL.createObjectURL(new Blob([body], {type: item.type}));
+      urls.set(name, url);
+      building.delete(name);
+      return url;
+    }
+    const pageURL = sourceURL(ENTRY);
+    const doc = new DOMParser().parseFromString(decoder.decode(data.get(ENTRY).bytes), "text/html");
+    for (const element of doc.querySelectorAll("[src],link[href],object[data],video[poster],image[href],image[xlink\\:href]")) {
+      for (const attr of ["src", "href", "data", "poster", "xlink:href"]) {
+        if (!element.hasAttribute(attr)) continue;
+        const key = fileKey(element.getAttribute(attr), pageURL);
+        // HTML navigation always passes through its own gate. Cached credentials
+        // unlock same-origin iframes and links while preserving paths/hashes.
+        if (key && data.has(key) && !key.endsWith(".html")) element.setAttribute(attr, assetURL(key));
+      }
+    }
+    for (const style of doc.querySelectorAll("style")) style.textContent = rewriteCSS(style.textContent, pageURL);
+    for (const element of doc.querySelectorAll("[style]")) element.setAttribute("style", rewriteCSS(element.getAttribute("style"), pageURL));
+    if (!doc.querySelector('meta[name="robots"]')) {
+      const robots = doc.createElement("meta");
+      robots.name = "robots";
+      robots.content = "noindex, nofollow";
+      doc.head.appendChild(robots);
+    }
+    // Preserve the browser's normal parser/script ordering, module deferral,
+    // load events, global lexical bindings, document URL, and hash navigation.
+    // The bridge serves private fetches exclusively from authenticated memory;
+    // cache-busting query strings remain accepted and never go to the server.
+    window.fetch = async function (request, options) {
+      const value = request instanceof Request ? request.url : String(request);
+      const key = fileKey(value);
+      const method = (options && options.method) || (request instanceof Request ? request.method : "GET");
+      if (key && data.has(key) && /^(GET|HEAD)$/i.test(method)) {
+        const item = data.get(key);
+        return new Response(method.toUpperCase() === "HEAD" ? null : item.bytes.slice(), {
+          status: 200, headers: {"Content-Type": item.type, "Cache-Control": "no-store"}
+        });
+      }
+      return nativeFetch(request, options);
+    };
+    const html = "<!doctype html>\n" + doc.documentElement.outerHTML;
+    document.open();
+    document.write(html);
+    document.close();
+  }
+
+  async function unlock(password) {
+    if (running || !password) return;
+    running = true;
+    error.textContent = "";
+    button.disabled = input.disabled = true;
+    button.textContent = "Unlocking…";
+    try {
+      const files = await decrypt(password);
+      try { localStorage.setItem(PASSWORD_KEY, password); } catch (_) {}
+      render(files);
+    } catch (failure) {
+      try { localStorage.removeItem(PASSWORD_KEY); } catch (_) {}
+      error.textContent = failure.message || "The site could not be unlocked. Please retry.";
+      button.disabled = input.disabled = false;
+      button.textContent = "Unlock";
+      input.value = "";
+      input.focus();
+      running = false;
+    }
+  }
+  form.addEventListener("submit", event => { event.preventDefault(); unlock(input.value); });
+  if (!window.crypto || !crypto.subtle) {
+    error.textContent = "A secure connection (HTTPS or localhost) is required to unlock this site.";
+    button.disabled = true;
+    return;
+  }
+  let saved;
+  try { saved = localStorage.getItem(PASSWORD_KEY); } catch (_) {}
+  if (saved) unlock(saved);
+})();
+</script>
+</body>
+</html>
